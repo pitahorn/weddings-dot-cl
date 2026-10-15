@@ -7,13 +7,13 @@
 <title>Proveedores de matrimonio</title>
 <style>
   :root {
-    --bg: #faf7f2; --surface: #ffffff; --ink: #2b2522; --muted: #7a6f68; --line: #e8e0d6;
-    --accent: #a0522d; --accent-soft: #f3e6dc; --star: #d9a400; --radius: 12px;
+    --bg: #fdf6f7; --surface: #ffffff; --ink: #2a2228; --muted: #6e5f68; --line: #f0dfe4;
+    --accent: #b03a63; --accent-soft: #f9e4ea; --star: #a87a0a; --radius: 12px;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #1c1917; --surface: #262220; --ink: #f2ece6; --muted: #a89d94; --line: #3a3430;
-      --accent: #e0a07a; --accent-soft: #3a2c24; --star: #f2c230;
+      --bg: #1d1720; --surface: #28202b; --ink: #f6eef2; --muted: #b9a8b2; --line: #3d3040;
+      --accent: #f08bab; --accent-soft: #3d2431; --star: #f2c230;
     }
   }
   * { box-sizing: border-box; }
@@ -31,11 +31,13 @@
   .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; cursor: pointer; text-align: left; padding: 0; font: inherit; color: inherit; transition: transform .15s, box-shadow .15s; }
   .card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.08); }
   .card .foto { aspect-ratio: 3/2; background: var(--accent-soft); width: 100%; object-fit: cover; display: block; }
-  .card .cuerpo { padding: 12px 14px 14px; }
-  .card h3 { margin: 0 0 4px; font-size: 17px; line-height: 1.3; }
-  .meta { color: var(--muted); font-size: 14px; }
+  .card .cuerpo { padding: 16px 16px 18px; }
+  .card h3 { margin: 0 0 8px; font-size: 17px; line-height: 1.3; }
+  .meta { color: var(--muted); font-size: 14px; line-height: 1.5; }
+  .meta + .meta { margin-top: 4px; }
+  .det-head h2 + .meta { margin-top: 8px; }
   .estrellas { color: var(--star); letter-spacing: 1px; }
-  .precio { margin-top: 6px; font-size: 14px; color: var(--accent); font-weight: 600; }
+  .precio { margin-top: 10px; font-size: 14px; color: var(--accent); font-weight: 600; }
   .vacio { text-align: center; color: var(--muted); padding: 64px 16px; }
   .mas { display: block; margin: 24px auto; padding: 10px 24px; border-radius: 999px; border: 1px solid var(--accent); background: none; color: var(--accent); font: inherit; cursor: pointer; }
   dialog { border: none; border-radius: var(--radius); padding: 0; width: min(860px, calc(100vw - 32px)); max-height: calc(100vh - 32px); background: var(--surface); color: var(--ink); }
@@ -50,8 +52,9 @@
   .descripcion { white-space: pre-line; }
   .faq { margin: 0; }
   .faq dt { font-weight: 600; margin-top: 10px; }
-  .faq dd { margin: 2px 0 0; color: var(--muted); }
-  .opinion { border-top: 1px solid var(--line); padding: 12px 0; }
+  .faq dd { margin: 4px 0 0; color: var(--muted); }
+  .opinion { border-top: 1px solid var(--line); padding: 14px 0; }
+  .opinion > div + div { margin-top: 4px; }
   .opinion .quien { font-weight: 600; }
   .links a { color: var(--accent); margin-right: 16px; }
 </style>
@@ -130,7 +133,11 @@ document.addEventListener("error", (e) => {
   const img = e.target;
   if (img.tagName !== "IMG" || !img.dataset.ruta) return;
   const siguiente = Number(img.dataset.intento) + 1;
-  if (siguiente >= TAMANOS.length * FORMATOS.length) { img.removeAttribute("src"); return; }
+  if (siguiente >= TAMANOS.length * FORMATOS.length) {
+    if (img.className) img.replaceWith(Object.assign(document.createElement("div"), { className: img.className }));
+    else img.remove();
+    return;
+  }
   img.dataset.intento = siguiente;
   img.src = urlFoto(img.dataset.ruta, siguiente);
 }, true);
