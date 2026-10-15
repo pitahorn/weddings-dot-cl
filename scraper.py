@@ -28,8 +28,9 @@ RAIZ = Path(__file__).parent
 CACHE = RAIZ / "cache"
 DATA = RAIZ / "data"
 INTERVALO = 5.0  # segundos entre pedidos: el archivo bloquea sobre ~15 por minuto
-BLOQUEOS = [300, 900, 3600]  # espera si el archivo nos rechaza; la última se repite
+BLOQUEOS = [300, 900, 3600]  # esperas si el archivo nos rechaza; después, alerta
 PUBLICAR_CADA = 100  # proveedores nuevos entre cada subida a GitHub
+MAX_NO_ENCONTRADAS = 20  # seguidas: más que eso huele a URLs mal armadas, no a huecos del archivo
 UA = {"User-Agent": "Mozilla/5.0 (archivo personal de matrimonio)"}
 FICHA = re.compile(r"--e(\d+)/?$")
 LD_JSON = re.compile(r"<script[^>]+application/ld\+json[^>]*>(.*?)</script>", re.S)
@@ -39,10 +40,20 @@ FOTO = re.compile(r"https://cdn\d\.matrimonios\.cl/vendor/(\d+)/3_2/\d+/(\w+)/([
 _ultimo_pedido = 0.0
 
 
+def log(mensaje):
+    print(f"{time.strftime('%H:%M')} {mensaje}", flush=True)
+
+
+def alerta(mensaje):
+    """Se detiene y avisa: mejor parar y mirar que seguir golpeando al archivo."""
+    log(f"ALERTA: {mensaje}")
+    sys.exit(2)
+
+
 def get(url):
-    """Insiste hasta lograrlo: solo se rinde con un 4xx que no sea por exceso de pedidos."""
+    """Espera los bloqueos (5, 15, 60 min); si siguen, se detiene. Un 4xx que no sea 429 = no existe."""
     global _ultimo_pedido
-    for i in range(10**6):
+    for i in range(len(BLOQUEOS) + 1):
         time.sleep(max(0.0, _ultimo_pedido + INTERVALO - time.monotonic()))
         _ultimo_pedido = time.monotonic()
         try:
@@ -56,9 +67,10 @@ def get(url):
             codigo = getattr(e, "code", None)
             if codigo and 400 <= codigo < 500 and codigo != 429:
                 return None
-            espera = BLOQUEOS[min(i, len(BLOQUEOS) - 1)]
-            print(f"  archivo no responde ({e}), espero {espera // 60} min", flush=True)
-            time.sleep(espera)
+            if i == len(BLOQUEOS):
+                alerta(f"el archivo sigue sin responder tras {sum(BLOQUEOS) // 60} min ({e})")
+            log(f"archivo no responde ({e}), espero {BLOQUEOS[i] // 60} min")
+            time.sleep(BLOQUEOS[i])
 
 
 def listar_fichas(cat):
@@ -231,32 +243,36 @@ def publicar(mensaje):
         return
     cuerpo = f"{mensaje}\n\n🪨 Generated with Claude Code\n\nCo-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>\n"
     subprocess.run(["git", "commit", "-q", "-m", cuerpo], cwd=RAIZ, check=True)
-    subprocess.run(["git", "push", "-q", "origin", "main"], cwd=RAIZ)
+    if subprocess.run(["git", "push", "-q", "origin", "main"], cwd=RAIZ).returncode:
+        alerta("git push falló; los datos quedaron commiteados en local")
 
 
 def procesar(cat, sube):
-    print(f"== {cat}", flush=True)
+    log(f"== {cat}")
     fichas = listar_fichas(cat)
-    print(f"  {len(fichas)} fichas archivadas desde {DESDE}", flush=True)
+    log(f"{len(fichas)} fichas archivadas desde {DESDE}")
     carpeta = CACHE / cat
-    nuevas = 0
+    nuevas = no_encontradas = 0
     for i, (url, ts) in enumerate(sorted(fichas.items()), 1):
         archivo = carpeta / f"{FICHA.search(url).group(1)}.html.gz"
         if leer(archivo):
             continue
         html = get(f"https://web.archive.org/web/{ts}id_/{url}")
         if not html:
-            print(f"  [{i}/{len(fichas)}] x el archivo no tiene {url}", flush=True)
+            no_encontradas += 1
+            log(f"[{i}/{len(fichas)}] x el archivo no tiene {url}")
+            if no_encontradas >= MAX_NO_ENCONTRADAS:
+                alerta(f"{no_encontradas} fichas seguidas no existen en el archivo")
             continue
         archivo.write_bytes(gzip.compress(html.encode("utf-8")))
-        nuevas += 1
-        print(f"  [{i}/{len(fichas)}] {url.rsplit('/', 1)[-1][:60]}", flush=True)
+        nuevas, no_encontradas = nuevas + 1, 0
+        log(f"[{i}/{len(fichas)}] {url.rsplit('/', 1)[-1][:60]}")
         if sube and nuevas % PUBLICAR_CADA == 0:
             armar(cat)
             publicar(f"data: {cat} ({i}/{len(fichas)})")
     listos, total = armar(cat)
     escribir_estado()
-    print(f"  -> data/{cat}.js ({listos} proveedores)", flush=True)
+    log(f"-> data/{cat}.js ({listos} proveedores)")
     if sube:
         publicar(f"data: {cat} completa ({listos} proveedores)")
 
