@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proveedores de matrimonio</title>
+<style>
+  :root {
+    --bg: #faf7f2; --surface: #ffffff; --ink: #2b2522; --muted: #7a6f68; --line: #e8e0d6;
+    --accent: #a0522d; --accent-soft: #f3e6dc; --star: #d9a400; --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1917; --surface: #262220; --ink: #f2ece6; --muted: #a89d94; --line: #3a3430;
+      --accent: #e0a07a; --accent-soft: #3a2c24; --star: #f2c230;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 32px 16px 16px; max-width: 1200px; margin: 0 auto; }
+  h1 { font: 600 32px/1.2 Georgia, "Times New Roman", serif; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0; }
+  .filtros { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+  .filtros-in { max-width: 1200px; margin: 0 auto; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  select, input { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  input[type=search] { flex: 1 1 220px; }
+  .cuenta { color: var(--muted); font-size: 14px; margin-left: auto; }
+  main { max-width: 1200px; margin: 0 auto; padding: 16px; }
+  .grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; cursor: pointer; text-align: left; padding: 0; font: inherit; color: inherit; transition: transform .15s, box-shadow .15s; }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.08); }
+  .card .foto { aspect-ratio: 3/2; background: var(--accent-soft); width: 100%; object-fit: cover; display: block; }
+  .card .cuerpo { padding: 12px 14px 14px; }
+  .card h3 { margin: 0 0 4px; font-size: 17px; line-height: 1.3; }
+  .meta { color: var(--muted); font-size: 14px; }
+  .estrellas { color: var(--star); letter-spacing: 1px; }
+  .precio { margin-top: 6px; font-size: 14px; color: var(--accent); font-weight: 600; }
+  .vacio { text-align: center; color: var(--muted); padding: 64px 16px; }
+  .mas { display: block; margin: 24px auto; padding: 10px 24px; border-radius: 999px; border: 1px solid var(--accent); background: none; color: var(--accent); font: inherit; cursor: pointer; }
+  dialog { border: none; border-radius: var(--radius); padding: 0; width: min(860px, calc(100vw - 32px)); max-height: calc(100vh - 32px); background: var(--surface); color: var(--ink); }
+  dialog::backdrop { background: rgba(20,15,10,.55); }
+  .det-head { padding: 20px 24px 8px; display: flex; gap: 16px; align-items: flex-start; }
+  .det-head h2 { margin: 0; font: 600 26px/1.2 Georgia, serif; flex: 1; }
+  .cerrar { border: none; background: var(--accent-soft); color: var(--ink); width: 36px; height: 36px; border-radius: 50%; font-size: 20px; cursor: pointer; }
+  .galeria { display: flex; gap: 8px; overflow-x: auto; padding: 8px 24px; scroll-snap-type: x mandatory; }
+  .galeria img { height: 260px; aspect-ratio: 3/2; object-fit: cover; border-radius: 8px; background: var(--accent-soft); scroll-snap-align: start; flex: none; }
+  section.bloque { padding: 8px 24px 16px; }
+  section.bloque h4 { margin: 16px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .descripcion { white-space: pre-line; }
+  .faq { margin: 0; }
+  .faq dt { font-weight: 600; margin-top: 10px; }
+  .faq dd { margin: 2px 0 0; color: var(--muted); }
+  .opinion { border-top: 1px solid var(--line); padding: 12px 0; }
+  .opinion .quien { font-weight: 600; }
+  .links a { color: var(--accent); margin-right: 16px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Proveedores de matrimonio</h1>
+  <p class="sub">Fichas de matrimonios.cl rescatadas de Wayback Machine (capturas 2025). Las fotos cargan desde el archivo, así que necesitan internet.</p>
+</header>
+<div class="filtros"><div class="filtros-in">
+  <select id="categoria"></select>
+  <input id="buscar" type="search" placeholder="Buscar por nombre, comuna o descripción…">
+  <select id="region"><option value="">Todas las zonas</option></select>
+  <select id="nota">
+    <option value="0">Cualquier nota</option><option value="4.5">4.5+</option><option value="4.8">4.8+</option><option value="5">5.0</option>
+  </select>
+  <select id="orden">
+    <option value="opiniones">Más opiniones</option><option value="nota">Mejor nota</option><option value="nombre">Nombre A–Z</option>
+  </select>
+  <span class="cuenta" id="cuenta"></span>
+</div></div>
+<main>
+  <div class="grilla" id="grilla"></div>
+  <p class="vacio" id="vacio" hidden></p>
+  <button class="mas" id="mas" hidden>Ver más</button>
+</main>
+<dialog id="detalle"></dialog>
+
+<script>
+const CATEGORIAS = {
+  "accesorios-novia": "Accesorios de novia", "accesorios-novio": "Accesorios de novio",
+  "animacion-de-eventos": "Animación", "argollas-de-matrimonio": "Argollas", "autos-matrimonio": "Autos",
+  "banquetes": "Banquetes", "barras-moviles": "Barras móviles", "belleza-novias": "Belleza novias",
+  "bodas-en-la-playa": "Bodas en la playa", "carpas-de-eventos": "Carpas", "casona-de-eventos": "Casonas",
+  "centros-de-eventos": "Centros de eventos", "cotillon": "Cotillón", "cuidado-masculino": "Cuidado masculino",
+  "decoracion-matrimonio": "Decoración", "destination-wedding": "Destination wedding",
+  "espacios-singulares": "Espacios singulares", "florerias": "Florerías",
+  "food-truck-y-mesas-de-dulces": "Food trucks y mesas de dulces", "fotografo-matrimonio": "Fotógrafos",
+  "hoteles-matrimonios": "Hoteles", "invitaciones-matrimonio": "Invitaciones", "locales-eventos": "Locales",
+  "lugares-matrimonios": "Lugares", "luna-de-miel": "Luna de miel", "musica-matrimonio": "Música",
+  "parcela-de-eventos": "Parcelas", "photobooth": "Photobooth", "recuerdos-matrimonios": "Recuerdos",
+  "restaurantes-matrimonios": "Restaurantes", "salones-eventos": "Salones", "tiendas-de-novia": "Tiendas de novia",
+  "torta-novios": "Tortas", "trajes-de-novio": "Trajes de novio", "trajes-fiesta": "Trajes de fiesta",
+  "trajes-madrina": "Trajes de madrina", "trajes-novio": "Trajes novio", "vestidos-novia": "Vestidos de novia",
+  "video-matrimonio": "Video", "wedding-planner": "Wedding planners",
+};
+const POR_PAGINA = 60;
+const TAMANOS = ["960", "640", "320"];
+const FORMATOS = ["jpeg", "webp"];
+const CATEGORIA_INICIAL = "musica-matrimonio";
+
+const datos = {};
+let lista = [];
+let mostrados = 0;
+const $ = (id) => document.getElementById(id);
+
+window.CATALOGO = { agregar(cat, proveedores) { datos[cat] = proveedores; } };
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
+function urlFoto(ruta, intento) {
+  const [carpeta, formato, nombre] = ruta.split("/");
+  const tam = TAMANOS[Math.floor(intento / FORMATOS.length)];
+  const ext = FORMATOS[intento % FORMATOS.length];
+  return `https://web.archive.org/web/2025im_/https://cdn0.matrimonios.cl/vendor/${carpeta}/3_2/${tam}/${formato}/${nombre}.${ext}`;
+}
+
+function imgFoto(ruta, clase) {
+  if (!ruta) return `<div class="${clase}"></div>`;
+  return `<img class="${clase}" loading="lazy" alt="" data-ruta="${esc(ruta)}" data-intento="0" src="${urlFoto(ruta, 0)}">`;
+}
+
+document.addEventListener("error", (e) => {
+  const img = e.target;
+  if (img.tagName !== "IMG" || !img.dataset.ruta) return;
+  const siguiente = Number(img.dataset.intento) + 1;
+  if (siguiente >= TAMANOS.length * FORMATOS.length) { img.removeAttribute("src"); return; }
+  img.dataset.intento = siguiente;
+  img.src = urlFoto(img.dataset.ruta, siguiente);
+}, true);
+
+function estrellas(nota) {
+  const n = Math.round(Number(nota) || 0);
+  return "★".repeat(n) + "☆".repeat(5 - n);
+}
+
+function cargar(cat) {
+  if (datos[cat]) return Promise.resolve(datos[cat]);
+  return new Promise((ok) => {
+    const s = document.createElement("script");
+    s.src = `data/${cat}.js`;
+    s.onload = () => ok(datos[cat]);
+    s.onerror = () => ok(null);
+    document.head.appendChild(s);
+  });
+}
+
+async function cambiarCategoria() {
+  const cat = $("categoria").value;
+  try { localStorage.setItem("categoria", cat); } catch {}
+  const provs = await cargar(cat);
+  const regiones = [...new Set((provs || []).map((p) => p.region).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
+  $("region").innerHTML = `<option value="">Todas las zonas</option>` + regiones.map((r) => `<option>${esc(r)}</option>`).join("");
+  filtrar();
+}
+
+function filtrar() {
+  const provs = datos[$("categoria").value];
+  if (!provs) {
+    lista = [];
+    $("grilla").innerHTML = "";
+    $("vacio").hidden = false;
+    $("vacio").textContent = "Esta categoría aún no está descargada.";
+    $("mas").hidden = true;
+    $("cuenta").textContent = "";
+    return;
+  }
+  const q = $("buscar").value.trim().toLowerCase();
+  const region = $("region").value;
+  const notaMin = Number($("nota").value);
+  const orden = $("orden").value;
+  lista = provs.filter((p) =>
+    (!region || p.region === region) &&
+    (Number(p.nota) || 0) >= notaMin &&
+    (!q || [p.nombre, p.comuna, p.region, p.descripcion].join(" ").toLowerCase().includes(q))
+  );
+  const cmp = {
+    opiniones: (a, b) => b.n_opiniones - a.n_opiniones || (b.nota || 0) - (a.nota || 0),
+    nota: (a, b) => (b.nota || 0) - (a.nota || 0) || b.n_opiniones - a.n_opiniones,
+    nombre: (a, b) => a.nombre.localeCompare(b.nombre, "es"),
+  }[orden];
+  lista.sort(cmp);
+  $("cuenta").textContent = `${lista.length} de ${provs.length} proveedores`;
+  $("vacio").hidden = lista.length > 0;
+  $("vacio").textContent = "Nada coincide con estos filtros.";
+  $("grilla").innerHTML = "";
+  mostrados = 0;
+  mostrarMas();
+}
+
+function tarjeta(p, i) {
+  const nota = p.nota ? `<span class="estrellas">${estrellas(p.nota)}</span> ${esc(p.nota)} · ${p.n_opiniones} opiniones` : "Sin opiniones";
+  return `<button class="card" data-i="${i}">
+    ${imgFoto(p.fotos[0], "foto")}
+    <div class="cuerpo">
+      <h3>${esc(p.nombre)}</h3>
+      <div class="meta">${nota}</div>
+      <div class="meta">${esc([p.comuna, p.region].filter(Boolean).join(", "))}</div>
+      ${p.precio ? `<div class="precio">${esc(p.precio.split("(")[0])}</div>` : ""}
+    </div>
+  </button>`;
+}
+
+function mostrarMas() {
+  const lote = lista.slice(mostrados, mostrados + POR_PAGINA);
+  $("grilla").insertAdjacentHTML("beforeend", lote.map((p, k) => tarjeta(p, mostrados + k)).join(""));
+  mostrados += lote.length;
+  $("mas").hidden = mostrados >= lista.length;
+}
+
+function abrir(p) {
+  const mapa = p.geo && p.geo[0] ? `<a target="_blank" rel="noopener" href="https://www.google.com/maps?q=${p.geo[0]},${p.geo[1]}">Ver en el mapa</a>` : "";
+  $("detalle").innerHTML = `
+    <div class="det-head">
+      <div style="flex:1">
+        <h2>${esc(p.nombre)}</h2>
+        <div class="meta">${p.nota ? `<span class="estrellas">${estrellas(p.nota)}</span> ${esc(p.nota)} · ${p.n_opiniones} opiniones · ` : ""}${esc([p.direccion, p.comuna, p.region].filter(Boolean).join(", "))}</div>
+        ${p.precio ? `<div class="precio">${esc(p.precio)}</div>` : ""}
+      </div>
+      <button class="cerrar" aria-label="Cerrar">×</button>
+    </div>
+    ${p.fotos.length ? `<div class="galeria">${p.fotos.map((f) => imgFoto(f, "")).join("")}</div>` : ""}
+    <section class="bloque">
+      <div class="links">${mapa}<a target="_blank" rel="noopener" href="https://web.archive.org/web/${p.ts}/${esc(p.url)}">Ver ficha original en el archivo</a></div>
+      ${p.descripcion ? `<h4>Descripción</h4><div class="descripcion">${esc(p.descripcion)}</div>` : ""}
+      ${p.faqs.length ? `<h4>Preguntas frecuentes</h4><dl class="faq">${p.faqs.map((f) => `<dt>${esc(f.p)}</dt><dd>${f.r.map(esc).join(" · ")}</dd>`).join("")}</dl>` : ""}
+      ${p.opiniones.length ? `<h4>Opiniones (${p.opiniones.length} de ${p.n_opiniones})</h4>${p.opiniones.map((o) => `
+        <div class="opinion">
+          <div><span class="quien">${esc(o.autor)}</span> <span class="meta">· ${esc(o.fecha)}</span></div>
+          <div class="estrellas">${estrellas(o.nota)}</div>
+          <div>${esc(o.texto)}</div>
+        </div>`).join("")}` : ""}
+    </section>`;
+  $("detalle").showModal();
+  $("detalle").scrollTop = 0;
+}
+
+$("grilla").addEventListener("click", (e) => {
+  const card = e.target.closest(".card");
+  if (card) abrir(lista[Number(card.dataset.i)]);
+});
+$("detalle").addEventListener("click", (e) => {
+  if (e.target === $("detalle") || e.target.closest(".cerrar")) $("detalle").close();
+});
+$("mas").addEventListener("click", mostrarMas);
+$("categoria").addEventListener("change", cambiarCategoria);
+["buscar", "region", "nota", "orden"].forEach((id) => $(id).addEventListener("input", filtrar));
+
+let inicial = CATEGORIA_INICIAL;
+try { inicial = localStorage.getItem("categoria") || inicial; } catch {}
+$("categoria").innerHTML = Object.entries(CATEGORIAS)
+  .sort((a, b) => a[1].localeCompare(b[1], "es"))
+  .map(([k, v]) => `<option value="${k}" ${k === inicial ? "selected" : ""}>${v}</option>`).join("");
+cambiarCategoria();
+</script>
+</body>
+</html>

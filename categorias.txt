@@ -1,0 +1,58 @@
+# Las 57 secciones del home de matrimonios.cl (captura 2025). [v] = categoría de proveedores, se descarga.
+[v] accesorios-novia
+[v] accesorios-novio
+[ ] agenda-matrimonio
+[ ] album-matrimonio-wedshoots
+[v] animacion-de-eventos
+[ ] app-matrimonios
+[v] argollas-de-matrimonio
+[ ] articulos
+[v] autos-matrimonio
+[v] banquetes
+[v] barras-moviles
+[v] belleza-novias
+[v] bodas-en-la-playa
+[v] carpas-de-eventos
+[v] casona-de-eventos
+[v] centros-de-eventos
+[v] cotillon
+[v] cuidado-masculino
+[v] decoracion-matrimonio
+[v] destination-wedding
+[v] espacios-singulares
+[v] florerias
+[v] food-truck-y-mesas-de-dulces
+[v] fotografo-matrimonio
+[ ] historias-matrimonio
+[v] hoteles-matrimonios
+[v] invitaciones-matrimonio
+[ ] lista-de-novios
+[ ] lista-invitados-matrimonio
+[v] locales-eventos
+[v] lugares-matrimonios
+[v] luna-de-miel
+[ ] mis-proveedores-matrimonio
+[ ] mis-vestidos-novia
+[v] musica-matrimonio
+[ ] novias
+[ ] novios
+[ ] organizador-matrimonio
+[ ] organizador-mesas-matrimonio
+[v] parcela-de-eventos
+[v] photobooth
+[ ] presupuesto-matrimonio
+[ ] proveedores
+[v] recuerdos-matrimonios
+[v] restaurantes-matrimonios
+[v] salones-eventos
+[v] tiendas-de-novia
+[v] torta-novios
+[v] trajes-de-novio
+[v] trajes-fiesta
+[v] trajes-madrina
+[v] trajes-novio
+[v] vestidos-novia
+[v] video-matrimonio
+[ ] web-matrimonio
+[ ] wedding-awards
+[v] wedding-planner
