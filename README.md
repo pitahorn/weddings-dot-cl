@@ -14,12 +14,14 @@ de todos los proveedores.
 ## Descargar más categorías
 
 ```sh
-python3 scraper.py florerias photobooth
+caffeinate -i python3 scraper.py --publicar florerias photobooth   # o sin categorías: todas
+python3 scraper.py --armar                                          # rearma data/ sin red
 ```
 
 Las categorías están en `categorias.txt` (`[v]` = de proveedores). Solo usa librerías
-estándar de Python. Va lento a propósito (unos 15–20 s por ficha) y, si se corta, retoma:
-las páginas quedan comprimidas en `cache/`, que no se sube al repo.
+estándar de Python. Va lento a propósito (un pedido cada 5 s; el archivo bloquea sobre ~15
+por minuto) y, si se corta, retoma: las páginas quedan comprimidas en `cache/`, que no se
+sube al repo. Con `--publicar` sube el avance a GitHub cada 100 fichas.
 
 ## Qué hay en `data/`
 

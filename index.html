@@ -21,6 +21,11 @@
   header { padding: 32px 16px 16px; max-width: 1200px; margin: 0 auto; }
   h1 { font: 600 32px/1.2 Georgia, "Times New Roman", serif; margin: 0 0 4px; }
   .sub { color: var(--muted); margin: 0; }
+  .estado { margin-top: 12px; font-size: 14px; color: var(--muted); }
+  .estado summary { cursor: pointer; }
+  .estado ul { columns: 220px; margin: 8px 0 0; padding: 0; list-style: none; }
+  .estado li { padding: 2px 0; break-inside: avoid; }
+  .estado b { color: var(--ink); font-weight: 600; }
   .filtros { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
   .filtros-in { max-width: 1200px; margin: 0 auto; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   select, input { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
@@ -63,6 +68,7 @@
 <header>
   <h1>Proveedores de matrimonio</h1>
   <p class="sub">Fichas de matrimonios.cl rescatadas de Wayback Machine (capturas 2025). Las fotos cargan desde el archivo, así que necesitan internet.</p>
+  <details class="estado" id="estado"></details>
 </header>
 <div class="filtros"><div class="filtros-in">
   <select id="categoria"></select>
@@ -111,7 +117,12 @@ let lista = [];
 let mostrados = 0;
 const $ = (id) => document.getElementById(id);
 
-window.CATALOGO = { agregar(cat, proveedores) { datos[cat] = proveedores; } };
+let estado = {};
+let actualizado = "";
+window.CATALOGO = {
+  agregar(cat, proveedores) { datos[cat] = proveedores; },
+  estado(porCategoria, fecha) { estado = porCategoria; actualizado = fecha; },
+};
 
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -147,15 +158,34 @@ function estrellas(nota) {
   return "★".repeat(n) + "☆".repeat(5 - n);
 }
 
-function cargar(cat) {
-  if (datos[cat]) return Promise.resolve(datos[cat]);
+function cargarScript(src) {
   return new Promise((ok) => {
     const s = document.createElement("script");
-    s.src = `data/${cat}.js`;
-    s.onload = () => ok(datos[cat]);
-    s.onerror = () => ok(null);
+    s.src = src;
+    s.onload = s.onerror = ok;
     document.head.appendChild(s);
   });
+}
+
+async function cargar(cat) {
+  if (!datos[cat] && estado[cat]) await cargarScript(`data/${cat}.js?v=${encodeURIComponent(actualizado)}`);
+  return datos[cat] || null;
+}
+
+function avance(cat) {
+  const e = estado[cat];
+  if (!e) return "pendiente";
+  if (!e.total) return `${e.listos} listos`;
+  return e.listos >= e.total ? `${e.listos} ✓` : `${e.listos} de ${e.total}`;
+}
+
+function pintarEstado() {
+  const conDatos = Object.keys(estado);
+  const proveedores = conDatos.reduce((n, c) => n + estado[c].listos, 0);
+  const filas = Object.entries(CATEGORIAS)
+    .sort((a, b) => (estado[b[0]] ? 1 : 0) - (estado[a[0]] ? 1 : 0) || a[1].localeCompare(b[1], "es"))
+    .map(([k, v]) => `<li>${estado[k] ? `<b>${v}</b>` : v} · ${avance(k)}</li>`).join("");
+  $("estado").innerHTML = `<summary>Descarga en curso: ${conDatos.length} de ${Object.keys(CATEGORIAS).length} categorías con datos · ${proveedores.toLocaleString("es-CL")} proveedores${actualizado ? ` · actualizado ${esc(actualizado)}` : ""}</summary><ul>${filas}</ul>`;
 }
 
 async function cambiarCategoria() {
@@ -261,10 +291,13 @@ $("categoria").addEventListener("change", cambiarCategoria);
 
 let inicial = CATEGORIA_INICIAL;
 try { inicial = localStorage.getItem("categoria") || inicial; } catch {}
-$("categoria").innerHTML = Object.entries(CATEGORIAS)
-  .sort((a, b) => a[1].localeCompare(b[1], "es"))
-  .map(([k, v]) => `<option value="${k}" ${k === inicial ? "selected" : ""}>${v}</option>`).join("");
-cambiarCategoria();
+cargarScript(`data/estado.js?v=${Date.now()}`).then(() => {
+  pintarEstado();
+  $("categoria").innerHTML = Object.entries(CATEGORIAS)
+    .sort((a, b) => a[1].localeCompare(b[1], "es"))
+    .map(([k, v]) => `<option value="${k}" ${k === inicial ? "selected" : ""}>${v} · ${avance(k)}</option>`).join("");
+  cambiarCategoria();
+});
 </script>
 </body>
 </html>

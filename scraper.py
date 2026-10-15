@@ -3,7 +3,9 @@
 Rescata las fichas de proveedores de matrimonios.cl guardadas en Wayback Machine (2025).
 
 Uso:
-    python3 scraper.py musica-matrimonio photobooth
+    python3 scraper.py --publicar florerias musica-matrimonio   # descarga y sube a GitHub
+    python3 scraper.py --publicar                               # todas las de categorias.txt
+    python3 scraper.py --armar                                  # rearma data/ desde cache/, sin red
 
 Por cada proveedor guarda nombre, nota, opiniones (con estrellas y texto), precio,
 ubicación, descripción, preguntas frecuentes y los links a sus fotos en el archivo.
@@ -14,6 +16,7 @@ import gzip
 import html as htmllib
 import json
 import re
+import subprocess
 import sys
 import time
 import urllib.parse
@@ -24,15 +27,24 @@ DESDE = "2025"
 RAIZ = Path(__file__).parent
 CACHE = RAIZ / "cache"
 DATA = RAIZ / "data"
-PAUSA = 2.0  # segundos entre descargas, para que el archivo no nos bloquee
+INTERVALO = 5.0  # segundos entre pedidos: el archivo bloquea sobre ~15 por minuto
+BLOQUEOS = [300, 900, 3600]  # espera si el archivo nos rechaza; la última se repite
+PUBLICAR_CADA = 100  # proveedores nuevos entre cada subida a GitHub
 UA = {"User-Agent": "Mozilla/5.0 (archivo personal de matrimonio)"}
 FICHA = re.compile(r"--e(\d+)/?$")
 LD_JSON = re.compile(r"<script[^>]+application/ld\+json[^>]*>(.*?)</script>", re.S)
 FOTO = re.compile(r"https://cdn\d\.matrimonios\.cl/vendor/(\d+)/3_2/\d+/(\w+)/([\w.-]+?)\.(?:jpe?g|webp|png)")
 
 
-def get(url, intentos=4):
-    for i in range(intentos):
+_ultimo_pedido = 0.0
+
+
+def get(url):
+    """Insiste hasta lograrlo: solo se rinde con un 4xx que no sea por exceso de pedidos."""
+    global _ultimo_pedido
+    for i in range(10**6):
+        time.sleep(max(0.0, _ultimo_pedido + INTERVALO - time.monotonic()))
+        _ultimo_pedido = time.monotonic()
         try:
             req = urllib.request.Request(url, headers=UA)
             with urllib.request.urlopen(req, timeout=60) as r:
@@ -41,15 +53,18 @@ def get(url, intentos=4):
                     cuerpo = gzip.decompress(cuerpo)
                 return cuerpo.decode("utf-8", "replace")
         except Exception as e:
-            if getattr(e, "code", None) == 404:
+            codigo = getattr(e, "code", None)
+            if codigo and 400 <= codigo < 500 and codigo != 429:
                 return None
-            espera = PAUSA * 2 ** (i + 1)
-            print(f"  reintento en {espera:.0f}s ({e})", flush=True)
+            espera = BLOQUEOS[min(i, len(BLOQUEOS) - 1)]
+            print(f"  archivo no responde ({e}), espero {espera // 60} min", flush=True)
             time.sleep(espera)
-    return None
 
 
 def listar_fichas(cat):
+    guardadas = CACHE / cat / "_fichas.json"
+    if guardadas.exists():
+        return json.loads(guardadas.read_text("utf-8"))
     q = urllib.parse.urlencode({
         "url": f"matrimonios.cl/{cat}/",
         "matchType": "prefix",
@@ -65,6 +80,9 @@ def listar_fichas(cat):
         limpia = original.split("?")[0].split("#")[0].rstrip("/").replace("http://", "https://")
         if FICHA.search(limpia):
             fichas.setdefault(limpia, ts)
+    if data:
+        guardadas.parent.mkdir(parents=True, exist_ok=True)
+        guardadas.write_text(json.dumps(fichas), "utf-8")
     return fichas
 
 
@@ -160,32 +178,97 @@ def extraer(html, url, ts):
     }
 
 
-def procesar(cat):
+def categorias():
+    lineas = (RAIZ / "categorias.txt").read_text("utf-8").splitlines()
+    return [l.split()[1] for l in lineas if l.startswith("[v]")]
+
+
+def leer(archivo):
+    """HTML guardado en cache/, o "" si no existe o quedó corrupto."""
+    if not archivo.exists():
+        return ""
+    html = gzip.decompress(archivo.read_bytes()).decode("utf-8")
+    return html if html.lstrip().startswith("<") else ""
+
+
+def armar(cat):
+    """Escribe data/<cat>.js con todo lo que hay en cache/, sin tocar la red."""
+    carpeta = CACHE / cat
+    fichas = listar_fichas(cat) if (carpeta / "_fichas.json").exists() else {}
+    ts_por_id = {FICHA.search(u).group(1): ts for u, ts in fichas.items()}
+    proveedores = []
+    for archivo in sorted(carpeta.glob("*.html.gz")):
+        html = leer(archivo)
+        canonica = re.search(r'<link rel="canonical" href="([^"]+)"', html)
+        if not canonica:
+            continue
+        url = htmllib.unescape(canonica.group(1))
+        proveedores.append(extraer(html, url, ts_por_id.get(archivo.name.split(".")[0], DESDE)))
+    DATA.mkdir(exist_ok=True)
+    cuerpo = json.dumps(proveedores, ensure_ascii=False, separators=(",", ":"))
+    (DATA / f"{cat}.js").write_text(f"CATALOGO.agregar({json.dumps(cat)},{cuerpo});\n", "utf-8")
+    return len(proveedores), (len(fichas) if fichas else None)
+
+
+def escribir_estado():
+    estado = {}
+    for cat in categorias():
+        archivo = DATA / f"{cat}.js"
+        if not archivo.exists():
+            continue
+        fichas = CACHE / cat / "_fichas.json"
+        total = len(json.loads(fichas.read_text("utf-8"))) if fichas.exists() else None
+        listos = archivo.read_text("utf-8").count('"url":')
+        estado[cat] = {"listos": listos, "total": total}
+    (DATA / "estado.js").write_text(
+        f"CATALOGO.estado({json.dumps(estado)},{json.dumps(time.strftime('%Y-%m-%d %H:%M'))});\n", "utf-8")
+
+
+def publicar(mensaje):
+    escribir_estado()
+    subprocess.run(["git", "add", "data"], cwd=RAIZ, check=True)
+    if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=RAIZ).returncode == 0:
+        return
+    cuerpo = f"{mensaje}\n\n🪨 Generated with Claude Code\n\nCo-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>\n"
+    subprocess.run(["git", "commit", "-q", "-m", cuerpo], cwd=RAIZ, check=True)
+    subprocess.run(["git", "push", "-q", "origin", "main"], cwd=RAIZ)
+
+
+def procesar(cat, sube):
     print(f"== {cat}", flush=True)
     fichas = listar_fichas(cat)
     print(f"  {len(fichas)} fichas archivadas desde {DESDE}", flush=True)
     carpeta = CACHE / cat
-    carpeta.mkdir(parents=True, exist_ok=True)
-    proveedores = []
+    nuevas = 0
     for i, (url, ts) in enumerate(sorted(fichas.items()), 1):
         archivo = carpeta / f"{FICHA.search(url).group(1)}.html.gz"
-        html = gzip.decompress(archivo.read_bytes()).decode("utf-8") if archivo.exists() else ""
-        if not html.lstrip().startswith("<"):
-            html = get(f"https://web.archive.org/web/{ts}id_/{url}")
-            time.sleep(PAUSA)
-            if not html:
-                print(f"  [{i}/{len(fichas)}] x no se pudo bajar {url}", flush=True)
-                continue
-            archivo.write_bytes(gzip.compress(html.encode("utf-8")))
-        datos = extraer(html, url, ts)
-        proveedores.append(datos)
-        print(f"  [{i}/{len(fichas)}] {datos['nombre'][:50]} · {len(datos['fotos'])} fotos · {len(datos['opiniones'])} opiniones", flush=True)
-    DATA.mkdir(exist_ok=True)
-    cuerpo = json.dumps(proveedores, ensure_ascii=False, separators=(",", ":"))
-    (DATA / f"{cat}.js").write_text(f"CATALOGO.agregar({json.dumps(cat)},{cuerpo});\n", "utf-8")
-    print(f"  -> data/{cat}.js ({len(proveedores)} proveedores)", flush=True)
+        if leer(archivo):
+            continue
+        html = get(f"https://web.archive.org/web/{ts}id_/{url}")
+        if not html:
+            print(f"  [{i}/{len(fichas)}] x el archivo no tiene {url}", flush=True)
+            continue
+        archivo.write_bytes(gzip.compress(html.encode("utf-8")))
+        nuevas += 1
+        print(f"  [{i}/{len(fichas)}] {url.rsplit('/', 1)[-1][:60]}", flush=True)
+        if sube and nuevas % PUBLICAR_CADA == 0:
+            armar(cat)
+            publicar(f"data: {cat} ({i}/{len(fichas)})")
+    listos, total = armar(cat)
+    escribir_estado()
+    print(f"  -> data/{cat}.js ({listos} proveedores)", flush=True)
+    if sube:
+        publicar(f"data: {cat} completa ({listos} proveedores)")
 
 
 if __name__ == "__main__":
-    for categoria in sys.argv[1:]:
-        procesar(categoria)
+    args = sys.argv[1:]
+    if args == ["--armar"]:
+        for cat in categorias():
+            if (CACHE / cat).exists():
+                print(cat, armar(cat), flush=True)
+        escribir_estado()
+    else:
+        sube = "--publicar" in args
+        for categoria in [a for a in args if a != "--publicar"] or categorias():
+            procesar(categoria, sube)
