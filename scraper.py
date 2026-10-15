@@ -30,6 +30,7 @@ DATA = RAIZ / "data"
 INTERVALO = 5.0  # segundos entre pedidos: el archivo bloquea sobre ~15 por minuto
 BLOQUEOS = [300, 900, 3600]  # esperas si el archivo nos rechaza; después, alerta
 PUBLICAR_CADA = 100  # proveedores nuevos entre cada subida a GitHub
+REINTENTOS_5XX = 2  # una página rota en el archivo da 500 siempre: se reintenta poco y se salta
 MAX_NO_ENCONTRADAS = 20  # seguidas: más que eso huele a URLs mal armadas, no a huecos del archivo
 UA = {"User-Agent": "Mozilla/5.0 (archivo personal de matrimonio)"}
 FICHA = re.compile(r"--e(\d+)/?$")
@@ -51,8 +52,9 @@ def alerta(mensaje):
 
 
 def get(url):
-    """Espera los bloqueos (5, 15, 60 min); si siguen, se detiene. Un 4xx que no sea 429 = no existe."""
+    """Espera los bloqueos (5, 15, 60 min); si siguen, se detiene. 4xx (menos 429) o 5xx repetido = no está."""
     global _ultimo_pedido
+    errores_5xx = 0
     for i in range(len(BLOQUEOS) + 1):
         time.sleep(max(0.0, _ultimo_pedido + INTERVALO - time.monotonic()))
         _ultimo_pedido = time.monotonic()
@@ -67,6 +69,13 @@ def get(url):
             codigo = getattr(e, "code", None)
             if codigo and 400 <= codigo < 500 and codigo != 429:
                 return None
+            if codigo and codigo >= 500:
+                errores_5xx += 1
+                if errores_5xx > REINTENTOS_5XX:
+                    return None
+                log(f"archivo da {codigo} en esta página, reintento en 1 min")
+                time.sleep(60)
+                continue
             if i == len(BLOQUEOS):
                 alerta(f"el archivo sigue sin responder tras {sum(BLOQUEOS) // 60} min ({e})")
             log(f"archivo no responde ({e}), espero {BLOQUEOS[i] // 60} min")
