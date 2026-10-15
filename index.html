@@ -35,6 +35,10 @@
   .grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
   .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; cursor: pointer; text-align: left; padding: 0; font: inherit; color: inherit; transition: transform .15s, box-shadow .15s; }
   .card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.08); }
+  .card-wrap { position: relative; display: flex; }
+  .card-wrap .card { width: 100%; }
+  .corazon { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(255,255,255,.92); color: var(--accent); font-size: 19px; line-height: 1; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.15); }
+  .det-head .corazon { position: static; flex: none; background: var(--accent-soft); box-shadow: none; }
   .card .foto { aspect-ratio: 3/2; background: var(--accent-soft); width: 100%; object-fit: cover; display: block; }
   .card .cuerpo { padding: 16px 16px 18px; }
   .card h3 { margin: 0 0 8px; font-size: 17px; line-height: 1.3; }
@@ -43,6 +47,7 @@
   .det-head h2 + .meta { margin-top: 8px; }
   .estrellas { color: var(--star); letter-spacing: 1px; }
   .precio { margin-top: 10px; font-size: 14px; color: var(--accent); font-weight: 600; }
+  [hidden] { display: none !important; }
   .vacio { text-align: center; color: var(--muted); padding: 64px 16px; }
   .mas { display: block; margin: 24px auto; padding: 10px 24px; border-radius: 999px; border: 1px solid var(--accent); background: none; color: var(--accent); font: inherit; cursor: pointer; }
   dialog { border: none; border-radius: var(--radius); padding: 0; width: min(860px, calc(100vw - 32px)); max-height: calc(100vh - 32px); background: var(--surface); color: var(--ink); }
@@ -112,6 +117,7 @@ const TAMANOS = ["960", "640", "320"];
 const FORMATOS = ["jpeg", "webp"];
 const CATEGORIA_INICIAL = "musica-matrimonio";
 const FILTROS = ["buscar", "region", "nota", "orden"];
+const FAVORITOS = "favoritos";
 
 const datos = {};
 let lista = [];
@@ -120,6 +126,8 @@ const $ = (id) => document.getElementById(id);
 
 let estado = {};
 let filtrosGuardados = {};
+let favoritos = new Set();
+try { favoritos = new Set(JSON.parse(localStorage.getItem("favoritos")) || []); } catch {}
 let actualizado = "";
 window.CATALOGO = {
   agregar(cat, proveedores) { datos[cat] = proveedores; },
@@ -190,10 +198,34 @@ function pintarEstado() {
   $("estado").innerHTML = `<summary>Descarga en curso: ${conDatos.length} de ${Object.keys(CATEGORIAS).length} categorías con datos · ${proveedores.toLocaleString("es-CL")} proveedores${actualizado ? ` · actualizado ${esc(actualizado)}` : ""}</summary><ul>${filas}</ul>`;
 }
 
+function categoriaDe(url) {
+  return new URL(url).pathname.split("/")[1];
+}
+
+function proveedoresDe(cat) {
+  if (cat !== FAVORITOS) return datos[cat];
+  return Object.values(datos).flat().filter((p) => favoritos.has(p.url));
+}
+
+function corazon(p) {
+  const on = favoritos.has(p.url);
+  return `<button class="corazon" data-url="${esc(p.url)}" aria-pressed="${on}" aria-label="${on ? "Quitar de" : "Agregar a"} favoritos">${on ? "♥" : "♡"}</button>`;
+}
+
+function alternarFavorito(url) {
+  if (favoritos.has(url)) favoritos.delete(url); else favoritos.add(url);
+  try { localStorage.setItem("favoritos", JSON.stringify([...favoritos])); } catch {}
+  document.querySelectorAll(".corazon").forEach((b) => {
+    if (b.dataset.url === url) b.outerHTML = corazon({ url });
+  });
+  $("categoria").querySelector(`[value="${FAVORITOS}"]`).textContent = `♥ Favoritos · ${favoritos.size}`;
+}
+
 async function cambiarCategoria() {
   const cat = $("categoria").value;
   try { localStorage.setItem("categoria", cat); } catch {}
-  const provs = await cargar(cat);
+  if (cat === FAVORITOS) await Promise.all([...new Set([...favoritos].map(categoriaDe))].map(cargar));
+  const provs = cat === FAVORITOS ? proveedoresDe(cat) : await cargar(cat);
   const regiones = [...new Set((provs || []).map((p) => p.region).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
   $("region").innerHTML = `<option value="">Todas las zonas</option>` + regiones.map((r) => `<option>${esc(r)}</option>`).join("");
   $("region").value = filtrosGuardados.region || "";
@@ -201,7 +233,16 @@ async function cambiarCategoria() {
 }
 
 function filtrar() {
-  const provs = datos[$("categoria").value];
+  const provs = proveedoresDe($("categoria").value);
+  if ($("categoria").value === FAVORITOS && !favoritos.size) {
+    lista = [];
+    $("grilla").innerHTML = "";
+    $("vacio").hidden = false;
+    $("vacio").textContent = "Aún no hay favoritos. Toca ♡ en un proveedor para guardarlo aquí.";
+    $("mas").hidden = true;
+    $("cuenta").textContent = "";
+    return;
+  }
   if (!provs) {
     lista = [];
     $("grilla").innerHTML = "";
@@ -236,7 +277,7 @@ function filtrar() {
 
 function tarjeta(p, i) {
   const nota = p.nota ? `<span class="estrellas">${estrellas(p.nota)}</span> ${esc(p.nota)} · ${p.n_opiniones} opiniones` : "Sin opiniones";
-  return `<button class="card" data-i="${i}">
+  return `<div class="card-wrap"><button class="card" data-i="${i}">
     ${imgFoto(p.fotos[0], "foto")}
     <div class="cuerpo">
       <h3>${esc(p.nombre)}</h3>
@@ -244,7 +285,7 @@ function tarjeta(p, i) {
       <div class="meta">${esc([p.comuna, p.region].filter(Boolean).join(", "))}</div>
       ${p.precio ? `<div class="precio">${esc(p.precio.split("(")[0])}</div>` : ""}
     </div>
-  </button>`;
+  </button>${corazon(p)}</div>`;
 }
 
 function mostrarMas() {
@@ -263,6 +304,7 @@ function abrir(p) {
         <div class="meta">${p.nota ? `<span class="estrellas">${estrellas(p.nota)}</span> ${esc(p.nota)} · ${p.n_opiniones} opiniones · ` : ""}${esc([p.direccion, p.comuna, p.region].filter(Boolean).join(", "))}</div>
         ${p.precio ? `<div class="precio">${esc(p.precio)}</div>` : ""}
       </div>
+      ${corazon(p)}
       <button class="cerrar" aria-label="Cerrar">×</button>
     </div>
     ${p.fotos.length ? `<div class="galeria">${p.fotos.map((f) => imgFoto(f, "")).join("")}</div>` : ""}
@@ -281,6 +323,10 @@ function abrir(p) {
   $("detalle").scrollTop = 0;
 }
 
+document.addEventListener("click", (e) => {
+  const boton = e.target.closest(".corazon");
+  if (boton) alternarFavorito(boton.dataset.url);
+});
 $("grilla").addEventListener("click", (e) => {
   const card = e.target.closest(".card");
   if (card) abrir(lista[Number(card.dataset.i)]);
@@ -305,6 +351,7 @@ cargarScript(`data/estado.js?v=${Date.now()}`).then(() => {
   $("categoria").innerHTML = Object.entries(CATEGORIAS)
     .sort((a, b) => a[1].localeCompare(b[1], "es"))
     .map(([k, v]) => `<option value="${k}" ${k === inicial ? "selected" : ""}>${v} · ${avance(k)}</option>`).join("");
+  $("categoria").insertAdjacentHTML("afterbegin", `<option value="${FAVORITOS}" ${inicial === FAVORITOS ? "selected" : ""}>♥ Favoritos · ${favoritos.size}</option>`);
   cambiarCategoria();
 });
 </script>
