@@ -1,1 +1,1 @@
-CATALOGO.estado({"accesorios-novia": {"listos": 310, "total": 311}, "florerias": {"listos": 368, "total": 368}, "musica-matrimonio": {"listos": 1240, "total": 1249}, "tiendas-de-novia": {"listos": 200, "total": 307}},"2026-10-15 18:48");
+CATALOGO.estado({"accesorios-novia": {"listos": 310, "total": 311}, "florerias": {"listos": 368, "total": 368}, "musica-matrimonio": {"listos": 1240, "total": 1249}, "tiendas-de-novia": {"listos": 300, "total": 307}},"2026-10-15 18:56");
