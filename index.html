@@ -111,6 +111,7 @@ const POR_PAGINA = 60;
 const TAMANOS = ["960", "640", "320"];
 const FORMATOS = ["jpeg", "webp"];
 const CATEGORIA_INICIAL = "musica-matrimonio";
+const FILTROS = ["buscar", "region", "nota", "orden"];
 
 const datos = {};
 let lista = [];
@@ -118,6 +119,7 @@ let mostrados = 0;
 const $ = (id) => document.getElementById(id);
 
 let estado = {};
+let filtrosGuardados = {};
 let actualizado = "";
 window.CATALOGO = {
   agregar(cat, proveedores) { datos[cat] = proveedores; },
@@ -194,6 +196,7 @@ async function cambiarCategoria() {
   const provs = await cargar(cat);
   const regiones = [...new Set((provs || []).map((p) => p.region).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
   $("region").innerHTML = `<option value="">Todas las zonas</option>` + regiones.map((r) => `<option>${esc(r)}</option>`).join("");
+  $("region").value = filtrosGuardados.region || "";
   filtrar();
 }
 
@@ -287,10 +290,16 @@ $("detalle").addEventListener("click", (e) => {
 });
 $("mas").addEventListener("click", mostrarMas);
 $("categoria").addEventListener("change", cambiarCategoria);
-["buscar", "region", "nota", "orden"].forEach((id) => $(id).addEventListener("input", filtrar));
+FILTROS.forEach((id) => $(id).addEventListener("input", () => {
+  filtrosGuardados = Object.fromEntries(FILTROS.map((f) => [f, $(f).value]));
+  try { localStorage.setItem("filtros", JSON.stringify(filtrosGuardados)); } catch {}
+  filtrar();
+}));
 
 let inicial = CATEGORIA_INICIAL;
 try { inicial = localStorage.getItem("categoria") || inicial; } catch {}
+try { filtrosGuardados = JSON.parse(localStorage.getItem("filtros")) || {}; } catch {}
+["buscar", "nota", "orden"].forEach((id) => { if (filtrosGuardados[id] != null) $(id).value = filtrosGuardados[id]; });
 cargarScript(`data/estado.js?v=${Date.now()}`).then(() => {
   pintarEstado();
   $("categoria").innerHTML = Object.entries(CATEGORIAS)
