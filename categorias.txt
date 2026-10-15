@@ -1,4 +1,9 @@
 # Las 57 secciones del home de matrimonios.cl (captura 2025). [v] = categoría de proveedores, se descarga.
+# Orden = orden de descarga: las primeras van primero.
+[v] belleza-novias
+[v] fotografo-matrimonio
+[v] recuerdos-matrimonios
+[v] video-matrimonio
 [v] accesorios-novia
 [v] accesorios-novio
 [ ] agenda-matrimonio
@@ -10,7 +15,6 @@
 [v] autos-matrimonio
 [v] banquetes
 [v] barras-moviles
-[v] belleza-novias
 [v] bodas-en-la-playa
 [v] carpas-de-eventos
 [v] casona-de-eventos
@@ -22,7 +26,6 @@
 [v] espacios-singulares
 [v] florerias
 [v] food-truck-y-mesas-de-dulces
-[v] fotografo-matrimonio
 [ ] historias-matrimonio
 [v] hoteles-matrimonios
 [v] invitaciones-matrimonio
@@ -42,7 +45,6 @@
 [v] photobooth
 [ ] presupuesto-matrimonio
 [ ] proveedores
-[v] recuerdos-matrimonios
 [v] restaurantes-matrimonios
 [v] salones-eventos
 [v] tiendas-de-novia
@@ -52,7 +54,6 @@
 [v] trajes-madrina
 [v] trajes-novio
 [v] vestidos-novia
-[v] video-matrimonio
 [ ] web-matrimonio
 [ ] wedding-awards
 [v] wedding-planner
