@@ -4,22 +4,22 @@
 [v] fotografo-matrimonio
 [v] recuerdos-matrimonios
 [v] video-matrimonio
+[v] cotillon
+[v] argollas-de-matrimonio
+[v] autos-matrimonio
 [v] accesorios-novia
 [v] accesorios-novio
 [ ] agenda-matrimonio
 [ ] album-matrimonio-wedshoots
 [v] animacion-de-eventos
 [ ] app-matrimonios
-[v] argollas-de-matrimonio
 [ ] articulos
-[v] autos-matrimonio
 [v] banquetes
 [v] barras-moviles
 [v] bodas-en-la-playa
 [v] carpas-de-eventos
 [v] casona-de-eventos
 [v] centros-de-eventos
-[v] cotillon
 [v] cuidado-masculino
 [v] decoracion-matrimonio
 [v] destination-wedding
