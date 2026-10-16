@@ -57,6 +57,10 @@
   .det-head h2 { margin: 0; font: 600 26px/1.2 Georgia, serif; flex: 1; }
   .cerrar { border: none; background: var(--accent-soft); color: var(--ink); width: 36px; height: 36px; border-radius: 50%; font-size: 20px; cursor: pointer; }
   .galeria { display: flex; gap: 8px; overflow-x: auto; padding: 8px 24px; scroll-snap-type: x mandatory; }
+  .cargando { background: linear-gradient(90deg, var(--accent-soft) 30%, var(--line) 50%, var(--accent-soft) 70%) 0 0 / 300% 100%; animation: brillo 1.4s linear infinite; }
+  @keyframes brillo { from { background-position: 100% 0; } to { background-position: 0 0; } }
+  @media (prefers-reduced-motion: reduce) { .cargando { animation: none; } }
+  .card .sin-fotos, .sin-fotos { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; }
   .galeria img { height: 260px; aspect-ratio: 3/2; object-fit: cover; border-radius: 8px; background: var(--accent-soft); scroll-snap-align: start; flex: none; }
   section.bloque { padding: 8px 24px 16px; }
   section.bloque h4 { margin: 16px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
@@ -114,8 +118,7 @@ const CATEGORIAS = {
   "video-matrimonio": "Video", "wedding-planner": "Wedding planners",
 };
 const POR_PAGINA = 60;
-const TAMANOS = ["960", "640", "320"];
-const FORMATOS = ["jpeg", "webp"];
+const ARCHIVO = "https://web.archive.org/web/";
 const CATEGORIA_INICIAL = "musica-matrimonio";
 const FILTROS = ["buscar", "region", "nota", "orden"];
 const FAVORITOS = "favoritos";
@@ -139,29 +142,25 @@ function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 }
 
-function urlFoto(ruta, intento) {
-  const [carpeta, formato, nombre] = ruta.split("/");
-  const tam = TAMANOS[Math.floor(intento / FORMATOS.length)];
-  const ext = FORMATOS[intento % FORMATOS.length];
-  return `https://web.archive.org/web/2025im_/https://cdn0.matrimonios.cl/vendor/${carpeta}/3_2/${tam}/${formato}/${nombre}.${ext}`;
+function urlFoto(ref) {
+  const corte = ref.indexOf("/");
+  return `${ARCHIVO}${ref.slice(0, corte)}im_/https://cdn0.matrimonios.cl/${ref.slice(corte + 1)}`;
 }
 
-function imgFoto(ruta, clase) {
-  if (!ruta) return `<div class="${clase}"></div>`;
-  return `<img class="${clase}" loading="lazy" alt="" data-ruta="${esc(ruta)}" data-intento="0" src="${urlFoto(ruta, 0)}">`;
+function imgFoto(ref, clase) {
+  return `<img class="${clase} cargando" loading="lazy" alt="" src="${urlFoto(ref)}">`;
 }
 
+function sinFotos(texto) {
+  return `<div class="foto sin-fotos">${texto}</div>`;
+}
+
+document.addEventListener("load", (e) => e.target.classList?.remove("cargando"), true);
 document.addEventListener("error", (e) => {
   const img = e.target;
-  if (img.tagName !== "IMG" || !img.dataset.ruta) return;
-  const siguiente = Number(img.dataset.intento) + 1;
-  if (siguiente >= TAMANOS.length * FORMATOS.length) {
-    if (img.className) img.replaceWith(Object.assign(document.createElement("div"), { className: img.className }));
-    else img.remove();
-    return;
-  }
-  img.dataset.intento = siguiente;
-  img.src = urlFoto(img.dataset.ruta, siguiente);
+  if (img.tagName !== "IMG") return;
+  if (img.classList.contains("foto")) img.outerHTML = sinFotos("Foto no disponible");
+  else img.remove();
 }, true);
 
 function estrellas(nota) {
@@ -279,7 +278,7 @@ function filtrar() {
 function tarjeta(p, i) {
   const nota = p.nota ? `<span class="estrellas">${estrellas(p.nota)}</span> ${esc(p.nota)} · ${p.n_opiniones} opiniones` : "Sin opiniones";
   return `<div class="card-wrap"><button class="card" data-i="${i}">
-    ${imgFoto(p.fotos[0], "foto")}
+    ${p.fotos.length ? imgFoto(p.fotos[0][0], "foto") : sinFotos("Sin fotos en el archivo")}
     <div class="cuerpo">
       <h3>${esc(p.nombre)}</h3>
       <div class="meta">${nota}</div>
@@ -308,7 +307,7 @@ function abrir(p) {
       ${corazon(p)}
       <button class="cerrar" aria-label="Cerrar">×</button>
     </div>
-    ${p.fotos.length ? `<div class="galeria">${p.fotos.map((f) => imgFoto(f, "")).join("")}</div>` : ""}
+    ${p.fotos.length ? `<div class="galeria">${p.fotos.map(([, grande]) => imgFoto(grande, "")).join("")}</div>` : ""}
     <section class="bloque">
       <div class="links">${mapa}<a target="_blank" rel="noopener" href="https://web.archive.org/web/${p.ts}/${esc(p.url)}">Ver ficha original en el archivo</a></div>
       ${p.descripcion ? `<h4>Descripción</h4><div class="descripcion">${esc(p.descripcion)}</div>` : ""}

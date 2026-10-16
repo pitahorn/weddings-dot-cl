@@ -35,7 +35,6 @@ MAX_NO_ENCONTRADAS = 20  # seguidas: más que eso huele a URLs mal armadas, no a
 UA = {"User-Agent": "Mozilla/5.0 (archivo personal de matrimonio)"}
 FICHA = re.compile(r"--e(\d+)/?$")
 LD_JSON = re.compile(r"<script[^>]+application/ld\+json[^>]*>(.*?)</script>", re.S)
-FOTO = re.compile(r"https://cdn\d\.matrimonios\.cl/vendor/(\d+)/3_2/\d+/(\w+)/([\w.-]+?)\.(?:jpe?g|webp|png)")
 
 
 _ultimo_pedido = 0.0
@@ -158,13 +157,52 @@ def faqs(html):
     return salida
 
 
+VARIANTES_CHICA = ["320", "t10", "tmr", "640", "r10_2x", "t20", "960", "t25", "tpr"]
+VARIANTES_GRANDE = ["960", "t25", "640", "1280", "t20", "r10_2x", "1920", "tmr", "t10", "320", "tpr"]
+FOTO_NUEVA = re.compile(r"cdn0\.matrimonios\.cl/(vendor/\d+/3_2/(\d+)/\w+/([^/\s]+?))\.(?:jpe?g|webp|png)", re.I)
+FOTO_VIEJA = re.compile(r"cdn0\.matrimonios\.cl/(emp/fotos/[\d/]+/(t\d+|r\d+_2x|tpr|tmr)_([^/\s]+?))\.(?:jpe?g|png)", re.I)
+ID_EN_NOMBRE = re.compile(r"_\d+_(\d+)(?:_v\d+)?(?:-\d+)?$")
+_indice = None
+
+
+def indice_fotos():
+    """{nombre: {variante: "ts/ruta.ext"}} y {id: [nombres]}, desde los índices CDX en cache/_fotos/."""
+    global _indice
+    if _indice is None:
+        por_nombre, por_id = {}, {}
+        for archivo in sorted((CACHE / "_fotos").glob("*.txt")):
+            for linea in archivo.read_text("utf-8", "replace").splitlines():
+                partes = linea.split()
+                if len(partes) < 2:
+                    continue
+                url = urllib.parse.unquote(partes[0])
+                m = FOTO_NUEVA.search(url) or FOTO_VIEJA.search(url)
+                if not m:
+                    continue
+                ruta, variante, nombre = m.group(1), m.group(2).lower(), m.group(3).lower()
+                ext = url.rsplit(".", 1)[-1]
+                actual = por_nombre.setdefault(nombre, {}).get(variante)
+                if not actual or ext == "webp":
+                    por_nombre[nombre][variante] = f"{partes[1]}/{urllib.parse.quote(ruta)}.{ext}"
+                quien = ID_EN_NOMBRE.search(nombre)
+                if quien and nombre not in por_id.setdefault(quien.group(1), []):
+                    por_id[quien.group(1)].append(nombre)
+        _indice = por_nombre, por_id
+    return _indice
+
+
 def fotos(html, id_proveedor):
-    vistas, salida = set(), []
-    for carpeta, formato, nombre in FOTO.findall(html):
-        if not re.search(rf"_{id_proveedor}(_v\d+)?(-\d+)?$", nombre) or nombre in vistas:
+    """Fotos que el archivo sí guardó: [chica, grande] por foto, en el orden de la ficha."""
+    por_nombre, por_id = indice_fotos()
+    en_ficha = [urllib.parse.unquote(m.group(3)).lower() for m in FOTO_NUEVA.finditer(html)]
+    salida = []
+    for nombre in dict.fromkeys(en_ficha + por_id.get(id_proveedor, [])):
+        variantes = por_nombre.get(nombre)
+        if not variantes or ID_EN_NOMBRE.search(nombre) is None or ID_EN_NOMBRE.search(nombre).group(1) != id_proveedor:
             continue
-        vistas.add(nombre)
-        salida.append(f"{carpeta}/{formato}/{nombre}")
+        chica = next(variantes[v] for v in VARIANTES_CHICA + list(variantes) if v in variantes)
+        grande = next(variantes[v] for v in VARIANTES_GRANDE + list(variantes) if v in variantes)
+        salida.append([chica, grande])
     return salida
 
 
