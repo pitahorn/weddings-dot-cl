@@ -31,9 +31,10 @@
   .filtros-in { max-width: 1200px; margin: 0 auto; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   select, input { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
   input[type=search] { flex: 1 1 220px; }
+  .ir-favoritos { color: var(--accent); font-weight: 600; text-decoration: none; padding: 8px 4px; white-space: nowrap; }
   .cuenta { color: var(--muted); font-size: 14px; margin-left: auto; }
   main { max-width: 1200px; margin: 0 auto; padding: 16px; }
-  .grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
   .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; cursor: pointer; text-align: left; padding: 0; font: inherit; color: inherit; transition: transform .15s, box-shadow .15s; }
   .card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.08); }
   .card-wrap { position: relative; display: flex; }
@@ -81,11 +82,15 @@
   <details class="estado" id="estado"></details>
 </header>
 <div class="filtros"><div class="filtros-in">
+  <a class="ir-favoritos" id="ir-favoritos"></a>
   <select id="categoria"></select>
   <input id="buscar" type="search" placeholder="Buscar por nombre, comuna o descripción…">
   <select id="region"><option value="">Todas las zonas</option></select>
   <select id="nota">
     <option value="0">Cualquier nota</option><option value="4.5">4.5+</option><option value="4.8">4.8+</option><option value="5">5.0</option>
+  </select>
+  <select id="fotos">
+    <option value="">Con y sin fotos</option><option value="con">Con fotos</option><option value="sin">Sin fotos</option>
   </select>
   <select id="orden">
     <option value="opiniones">Más opiniones</option><option value="nota">Mejor nota</option><option value="nombre">Nombre A–Z</option>
@@ -100,28 +105,21 @@
 <dialog id="detalle"></dialog>
 
 <script>
-const CATEGORIAS = {
-  "accesorios-novia": "Accesorios de novia", "accesorios-novio": "Accesorios de novio",
-  "animacion-de-eventos": "Animación", "argollas-de-matrimonio": "Argollas", "autos-matrimonio": "Autos",
-  "banquetes": "Banquetes", "barras-moviles": "Barras móviles", "belleza-novias": "Belleza novias",
-  "bodas-en-la-playa": "Bodas en la playa", "carpas-de-eventos": "Carpas", "casona-de-eventos": "Casonas",
-  "centros-de-eventos": "Centros de eventos", "cotillon": "Cotillón", "cuidado-masculino": "Cuidado masculino",
-  "decoracion-matrimonio": "Decoración", "destination-wedding": "Destination wedding",
-  "espacios-singulares": "Espacios singulares", "florerias": "Florerías",
-  "food-truck-y-mesas-de-dulces": "Food trucks y mesas de dulces", "fotografo-matrimonio": "Fotógrafos",
-  "hoteles-matrimonios": "Hoteles", "invitaciones-matrimonio": "Invitaciones", "locales-eventos": "Locales",
-  "lugares-matrimonios": "Lugares", "luna-de-miel": "Luna de miel", "musica-matrimonio": "Música",
-  "parcela-de-eventos": "Parcelas", "photobooth": "Photobooth", "recuerdos-matrimonios": "Recuerdos",
-  "restaurantes-matrimonios": "Restaurantes", "salones-eventos": "Salones", "tiendas-de-novia": "Tiendas de novia",
-  "torta-novios": "Tortas", "trajes-fiesta": "Trajes de fiesta",
-  "trajes-madrina": "Trajes de madrina", "trajes-novio": "Trajes de novio",
-  "video-matrimonio": "Video", "wedding-planner": "Wedding planners",
+const GRUPOS = {
+  "Lugar": { "centros-de-eventos": "Centros de eventos", "casona-de-eventos": "Casonas", "parcela-de-eventos": "Parcelas", "hoteles-matrimonios": "Hoteles", "restaurantes-matrimonios": "Restaurantes", "salones-eventos": "Salones", "locales-eventos": "Locales", "espacios-singulares": "Espacios singulares", "carpas-de-eventos": "Carpas", "bodas-en-la-playa": "Bodas en la playa", "destination-wedding": "Destination wedding", "lugares-matrimonios": "Otros lugares" },
+  "Banquete": { "banquetes": "Banquetes", "torta-novios": "Tortas", "food-truck-y-mesas-de-dulces": "Food trucks y dulces", "barras-moviles": "Barras móviles" },
+  "Foto y video": { "fotografo-matrimonio": "Fotógrafos", "video-matrimonio": "Video", "photobooth": "Photobooth" },
+  "Novia": { "tiendas-de-novia": "Vestidos de novia", "accesorios-novia": "Accesorios de novia", "belleza-novias": "Belleza y maquillaje" },
+  "Novio": { "trajes-novio": "Trajes de novio", "accesorios-novio": "Accesorios de novio", "cuidado-masculino": "Cuidado masculino" },
+  "Fiesta": { "musica-matrimonio": "Música", "animacion-de-eventos": "Animación", "decoracion-matrimonio": "Decoración", "florerias": "Florerías", "cotillon": "Cotillón" },
+  "Detalles": { "wedding-planner": "Wedding planners", "invitaciones-matrimonio": "Invitaciones", "argollas-de-matrimonio": "Argollas", "autos-matrimonio": "Autos", "recuerdos-matrimonios": "Recuerdos", "trajes-fiesta": "Trajes de fiesta", "trajes-madrina": "Trajes de madrina", "luna-de-miel": "Luna de miel" },
 };
-const POR_PAGINA = 60;
+const CATEGORIAS = Object.assign({}, ...Object.values(GRUPOS));
+const POR_PAGINA = 24;
 const ARCHIVO = "https://web.archive.org/web/";
 const CATEGORIA_INICIAL = "musica-matrimonio";
-const FILTROS = ["buscar", "region", "nota", "orden"];
-const FAVORITOS = "favoritos";
+const FILTROS = ["buscar", "region", "nota", "fotos", "orden"];
+const RUTA_FAVORITOS = "#favoritos";
 
 const datos = {};
 let lista = [];
@@ -202,9 +200,18 @@ function categoriaDe(url) {
   return new URL(url).pathname.split("/")[1];
 }
 
-function proveedoresDe(cat) {
-  if (cat !== FAVORITOS) return datos[cat];
+function enFavoritos() {
+  return location.hash === RUTA_FAVORITOS;
+}
+
+function proveedoresDe() {
+  if (!enFavoritos()) return datos[$("categoria").value];
   return Object.values(datos).flat().filter((p) => favoritos.has(p.url));
+}
+
+function pintarEnlaceFavoritos() {
+  $("ir-favoritos").href = enFavoritos() ? "#" : RUTA_FAVORITOS;
+  $("ir-favoritos").textContent = enFavoritos() ? "← Todo el catálogo" : `♥ Mis favoritos · ${favoritos.size}`;
 }
 
 function corazon(p) {
@@ -218,14 +225,18 @@ function alternarFavorito(url) {
   document.querySelectorAll(".corazon").forEach((b) => {
     if (b.dataset.url === url) b.outerHTML = corazon({ url });
   });
-  $("categoria").querySelector(`[value="${FAVORITOS}"]`).textContent = `♥ Favoritos · ${favoritos.size}`;
+  pintarEnlaceFavoritos();
 }
 
-async function cambiarCategoria() {
-  const cat = $("categoria").value;
-  try { localStorage.setItem("categoria", cat); } catch {}
-  if (cat === FAVORITOS) await Promise.all([...new Set([...favoritos].map(categoriaDe))].map(cargar));
-  const provs = cat === FAVORITOS ? proveedoresDe(cat) : await cargar(cat);
+async function mostrar() {
+  pintarEnlaceFavoritos();
+  $("categoria").hidden = enFavoritos();
+  if (enFavoritos()) await Promise.all([...new Set([...favoritos].map(categoriaDe))].map(cargar));
+  else {
+    try { localStorage.setItem("categoria", $("categoria").value); } catch {}
+    await cargar($("categoria").value);
+  }
+  const provs = proveedoresDe();
   const regiones = [...new Set((provs || []).map((p) => p.region).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
   $("region").innerHTML = `<option value="">Todas las zonas</option>` + regiones.map((r) => `<option>${esc(r)}</option>`).join("");
   $("region").value = filtrosGuardados.region || "";
@@ -233,8 +244,8 @@ async function cambiarCategoria() {
 }
 
 function filtrar() {
-  const provs = proveedoresDe($("categoria").value);
-  if ($("categoria").value === FAVORITOS && !favoritos.size) {
+  const provs = proveedoresDe();
+  if (enFavoritos() && !favoritos.size) {
     lista = [];
     $("grilla").innerHTML = "";
     $("vacio").hidden = false;
@@ -256,8 +267,10 @@ function filtrar() {
   const region = $("region").value;
   const notaMin = Number($("nota").value);
   const orden = $("orden").value;
+  const fotos = $("fotos").value;
   lista = provs.filter((p) =>
     (!region || p.region === region) &&
+    (!fotos || (fotos === "con") === p.fotos.length > 0) &&
     (Number(p.nota) || 0) >= notaMin &&
     (!q || [p.nombre, p.comuna, p.region, p.descripcion].join(" ").toLowerCase().includes(q))
   );
@@ -335,7 +348,8 @@ $("detalle").addEventListener("click", (e) => {
   if (e.target === $("detalle") || e.target.closest(".cerrar")) $("detalle").close();
 });
 $("mas").addEventListener("click", mostrarMas);
-$("categoria").addEventListener("change", cambiarCategoria);
+$("categoria").addEventListener("change", mostrar);
+window.addEventListener("hashchange", mostrar);
 FILTROS.forEach((id) => $(id).addEventListener("input", () => {
   filtrosGuardados = Object.fromEntries(FILTROS.map((f) => [f, $(f).value]));
   try { localStorage.setItem("filtros", JSON.stringify(filtrosGuardados)); } catch {}
@@ -345,14 +359,16 @@ FILTROS.forEach((id) => $(id).addEventListener("input", () => {
 let inicial = CATEGORIA_INICIAL;
 try { inicial = localStorage.getItem("categoria") || inicial; } catch {}
 try { filtrosGuardados = JSON.parse(localStorage.getItem("filtros")) || {}; } catch {}
-["buscar", "nota", "orden"].forEach((id) => { if (filtrosGuardados[id] != null) $(id).value = filtrosGuardados[id]; });
+["buscar", "nota", "fotos", "orden"].forEach((id) => { if (filtrosGuardados[id] != null) $(id).value = filtrosGuardados[id]; });
 cargarScript(`data/estado.js?v=${Date.now()}`).then(() => {
   pintarEstado();
-  $("categoria").innerHTML = Object.entries(CATEGORIAS)
-    .sort((a, b) => a[1].localeCompare(b[1], "es"))
-    .map(([k, v]) => `<option value="${k}" ${k === inicial ? "selected" : ""}>${v} · ${avance(k)}</option>`).join("");
-  $("categoria").insertAdjacentHTML("afterbegin", `<option value="${FAVORITOS}" ${inicial === FAVORITOS ? "selected" : ""}>♥ Favoritos · ${favoritos.size}</option>`);
-  cambiarCategoria();
+  $("categoria").innerHTML = Object.entries(GRUPOS)
+    .map(([grupo, cats]) => [grupo, Object.keys(cats).filter((k) => estado[k])])
+    .filter(([, cats]) => cats.length)
+    .map(([grupo, cats]) => `<optgroup label="${grupo}">${cats.map((k) => `<option value="${k}">${CATEGORIAS[k]}</option>`).join("")}</optgroup>`)
+    .join("");
+  if (estado[inicial]) $("categoria").value = inicial;
+  mostrar();
 });
 </script>
 </body>

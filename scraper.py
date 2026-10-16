@@ -50,7 +50,7 @@ def alerta(mensaje):
     sys.exit(2)
 
 
-def get(url):
+def get(url, binario=False):
     """Espera los bloqueos (5, 15, 60 min); si siguen, se detiene. 4xx (menos 429) o 5xx repetido = no está."""
     global _ultimo_pedido
     errores_5xx = 0
@@ -63,7 +63,7 @@ def get(url):
                 cuerpo = r.read()
                 if cuerpo[:2] == b"\x1f\x8b":  # el archivo a veces responde comprimido sin avisar
                     cuerpo = gzip.decompress(cuerpo)
-                return cuerpo.decode("utf-8", "replace")
+                return cuerpo if binario else cuerpo.decode("utf-8", "replace")
         except Exception as e:
             codigo = getattr(e, "code", None)
             if codigo and 400 <= codigo < 500 and codigo != 429:
