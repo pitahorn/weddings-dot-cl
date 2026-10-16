@@ -67,7 +67,7 @@
   @keyframes brillo { from { background-position: 100% 0; } to { background-position: 0 0; } }
   @media (prefers-reduced-motion: reduce) { .cargando { animation: none; } }
   .card .sin-fotos, .sin-fotos { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; }
-  .galeria img { height: 100%; max-width: calc(100vw - 48px); object-fit: contain; border-radius: 8px; background: var(--accent-soft); scroll-snap-align: start; flex: none; }
+  .galeria img { height: 100%; max-width: calc(100vw - 48px); object-fit: contain; border-radius: 8px; background: var(--accent-soft); scroll-snap-align: start; flex: none; cursor: zoom-in; }
   .galeria img.cargando { width: 200px; }
   section.bloque { padding: 8px 24px 16px; }
   section.bloque h4 { margin: 16px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
@@ -105,6 +105,15 @@
   .ficha.volando { transition: transform .25s ease-in; }
   .ficha.volviendo { transition: transform .2s ease-out, opacity .2s ease-out; }
   .indicador { position: fixed; top: 50%; z-index: 6; display: flex; flex-direction: column; align-items: center; gap: 8px; transform: translateY(-50%); opacity: 0; pointer-events: none; --c: var(--presupuesto); }
+  .visor { position: fixed; z-index: 8; display: flex; flex-direction: column; background: rgba(10,8,12,.94); border-radius: inherit; overflow: hidden; }
+  .visor-barra { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; color: #fff; font-size: 14px; }
+  .visor-barra button, .visor-flecha { border: none; background: rgba(255,255,255,.14); color: #fff; width: 40px; height: 40px; border-radius: 50%; font-size: 22px; cursor: pointer; }
+  .visor-pista { flex: 1; min-height: 0; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; touch-action: pan-x; scrollbar-width: none; }
+  .visor-pista img { flex: none; width: 100%; height: 100%; object-fit: contain; scroll-snap-align: center; }
+  .visor-flecha { position: absolute; top: 50%; transform: translateY(-50%); }
+  .visor-flecha.atras { left: 12px; }
+  .visor-flecha.adelante { right: 12px; }
+  @media (hover: none) { .visor-flecha { display: none; } }
   .basura { width: 1em; height: 1em; }
   .chip-presupuesto { color: var(--presupuesto); }
   .indicador-si { left: 16px; }
@@ -682,6 +691,30 @@ function moverFicha(dx) {
 }
 
 const NAVEGAR_PX = 50;
+let temporizadorVisor = 0;
+
+function abrirVisor(inicio) {
+  const fotos = [...document.querySelectorAll(".galeria img")].map((img) => img.src);
+  const marco = $("detalle").getBoundingClientRect();
+  const visor = Object.assign(document.createElement("div"), { className: "visor", id: "visor" });
+  Object.assign(visor.style, { top: `${marco.top}px`, left: `${marco.left}px`, width: `${marco.width}px`, height: `${marco.height}px` });
+  visor.innerHTML = `
+    <div class="visor-barra"><span id="visor-cuenta">${inicio + 1} / ${fotos.length}</span><button class="visor-cerrar" aria-label="Cerrar fotos">×</button></div>
+    <div class="visor-pista" id="visor-pista">${fotos.map((src) => `<img alt="" draggable="false" src="${src}">`).join("")}</div>
+    <button class="visor-flecha atras" aria-label="Foto anterior">‹</button>
+    <button class="visor-flecha adelante" aria-label="Foto siguiente">›</button>`;
+  $("detalle").append(visor);
+  const pista = $("visor-pista");
+  pista.scrollLeft = inicio * pista.clientWidth;
+  pista.addEventListener("scroll", () => {
+    $("visor-cuenta").textContent = `${Math.round(pista.scrollLeft / pista.clientWidth) + 1} / ${fotos.length}`;
+  });
+}
+
+function moverVisor(paso) {
+  const pista = $("visor-pista");
+  pista.scrollBy({ left: paso * pista.clientWidth, behavior: "smooth" });
+}
 
 function moverVertical(dy) {
   $("ficha").style.transform = `translateY(${dy * 0.4}px)`;
@@ -696,7 +729,7 @@ function soltarFicha() {
 
 $("detalle").addEventListener("pointerdown", (e) => {
   if (!e.target.closest(".ficha") || e.target.closest("button, a")) return;
-  toque = { id: e.pointerId, x: e.clientX, y: e.clientY, eje: null, enGaleria: Boolean(e.target.closest(".galeria")) };
+  toque = { id: e.pointerId, x: e.clientX, y: e.clientY, eje: null, enGaleria: Boolean(e.target.closest(".galeria")), foto: e.target.closest(".galeria img") };
 });
 $("detalle").addEventListener("pointermove", (e) => {
   if (!toque || e.pointerId !== toque.id || (e.pointerType === "mouse" && !e.buttons)) return;
@@ -717,16 +750,18 @@ $("detalle").addEventListener("pointerup", (e) => {
   if (!toque || e.pointerId !== toque.id) return;
   const dx = e.clientX - toque.x;
   const dy = e.clientY - toque.y;
-  const eje = toque.eje;
+  const { eje, foto } = toque;
   toque = null;
   if (eje === "x") return Math.abs(dx) > $("ficha").offsetWidth / 3 ? decidir(dx > 0 ? "presupuesto" : "descartar") : soltarFicha();
   if (eje === "y") return Math.abs(dy) >= NAVEGAR_PX ? navegar(dy < 0 ? 1 : -1) : soltarFicha();
   const ahora = Date.now();
   if (ahora - ultimoToque < DOBLE_TOQUE_MS) {
     ultimoToque = 0;
+    clearTimeout(temporizadorVisor);
     return decidir("favorito");
   }
   ultimoToque = ahora;
+  if (foto) temporizadorVisor = setTimeout(() => abrirVisor([...foto.parentElement.children].indexOf(foto)), DOBLE_TOQUE_MS);
 });
 $("detalle").addEventListener("pointercancel", () => {
   if (toque?.eje) soltarFicha();
@@ -735,6 +770,10 @@ $("detalle").addEventListener("pointercancel", () => {
 
 document.addEventListener("keydown", (e) => {
   if (!$("detalle").open || e.target.matches?.("input, select, textarea")) return;
+  if ($("visor")) {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") { e.preventDefault(); moverVisor(e.key === "ArrowRight" ? 1 : -1); }
+    return;
+  }
   const accion = { ArrowLeft: "descartar", ArrowRight: "presupuesto", ArrowUp: "anterior", ArrowDown: "siguiente", f: "favorito", F: "favorito" }[e.key];
   if (accion) { e.preventDefault(); decidir(accion); }
 });
@@ -754,6 +793,9 @@ $("presupuesto").addEventListener("click", (e) => {
   if (quitar) avisar("Quitado de tu presupuesto", marcar(quitar.dataset.url, null));
 });
 $("detalle").addEventListener("click", (e) => {
+  if (e.target.closest(".visor-cerrar")) return $("visor").remove();
+  if (e.target.closest(".visor-flecha")) return moverVisor(e.target.closest(".adelante") ? 1 : -1);
+  if (e.target.closest(".visor")) return;
   if (e.target === $("detalle") || e.target.closest(".cerrar")) return $("detalle").close();
   const verMas = e.target.closest(".ver-mas");
   if (verMas) {
@@ -765,6 +807,7 @@ $("detalle").addEventListener("click", (e) => {
   const accion = e.target.closest("[data-accion]");
   if (accion) decidir(accion.dataset.accion);
 });
+$("detalle").addEventListener("cancel", (e) => { if ($("visor")) { e.preventDefault(); $("visor").remove(); } });
 $("deshacer").addEventListener("click", () => {
   $("aviso").hidePopover();
   deshacerAccion?.();
