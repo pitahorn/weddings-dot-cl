@@ -1,4 +1,4 @@
-# Las 57 secciones del home de matrimonios.cl (captura 2025). [v] = categoría de proveedores, se descarga.
+# Las 57 secciones del home de matrimonios.cl (captura 2025). [v] = categoría de proveedores, se descarga. [c] = catálogo (diseñador → modelo), pasada aparte.
 # Orden = orden de descarga: las primeras van primero.
 [v] belleza-novias
 [v] fotografo-matrimonio
@@ -49,11 +49,11 @@
 [v] salones-eventos
 [v] tiendas-de-novia
 [v] torta-novios
-[v] trajes-de-novio
+[c] trajes-de-novio
 [v] trajes-fiesta
 [v] trajes-madrina
 [v] trajes-novio
-[v] vestidos-novia
+[c] vestidos-novia
 [ ] web-matrimonio
 [ ] wedding-awards
 [v] wedding-planner
