@@ -524,7 +524,7 @@ function abrirEn(nuevaCola, i) {
 
 function pintarFicha() {
   const p = cola[posicion];
-  const extra = [p.descripcion.length > 200 && "descripción", p.faqs.length && `${p.faqs.length} preguntas`, p.opiniones.length && `${p.opiniones.length} opiniones`].filter(Boolean).join(", ");
+  const hayMas = p.descripcion.length > 200 || p.faqs.length || p.opiniones.length;
   $("detalle").innerHTML = `
     <div class="ficha" id="ficha">
       <div class="det-head">
@@ -549,7 +549,7 @@ function pintarFicha() {
               <div>${esc(o.texto)}</div>
             </div>`).join("")}` : ""}
         </div>
-        ${extra ? `<button class="ver-mas">Ver más · ${extra}</button>` : ""}
+        ${hayMas ? `<button class="ver-mas">Ver más</button>` : ""}
       </section>
     </div>
     <div class="acciones">
