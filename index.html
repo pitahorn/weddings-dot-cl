@@ -54,17 +54,20 @@
   .precio { margin-top: 10px; font-size: 14px; color: var(--accent); font-weight: 600; }
   [hidden] { display: none !important; }
   .vacio { text-align: center; color: var(--muted); padding: 64px 16px; }
-  dialog { border: none; border-radius: var(--radius); padding: 0; width: min(860px, calc(100vw - 32px)); max-height: calc(100vh - 32px); background: var(--surface); color: var(--ink); }
+  dialog { border: none; border-radius: var(--radius); padding: 0; width: min(860px, calc(100vw - 32px)); height: min(820px, calc(100dvh - 32px)); background: var(--surface); color: var(--ink); overflow: hidden; overscroll-behavior: contain; }
+  dialog[open] { display: flex; flex-direction: column; }
+  body:has(#detalle[open]) { overflow: hidden; }
   dialog::backdrop { background: rgba(20,15,10,.55); }
   .det-head { padding: 20px 24px 8px; display: flex; gap: 16px; align-items: flex-start; }
   .det-head h2 { margin: 0; font: 600 26px/1.2 Georgia, serif; flex: 1; }
   .cerrar { border: none; background: var(--accent-soft); color: var(--ink); width: 36px; height: 36px; border-radius: 50%; font-size: 20px; cursor: pointer; }
-  .galeria { display: flex; gap: 8px; overflow-x: auto; padding: 8px 24px; scroll-snap-type: x mandatory; }
+  .galeria { display: flex; gap: 8px; overflow-x: auto; padding: 8px 24px; scroll-snap-type: x mandatory; flex: 1; min-height: 140px; touch-action: pan-x; }
+  dialog.abierta .galeria { flex: none; height: 260px; }
   .cargando { background: linear-gradient(90deg, var(--accent-soft) 30%, var(--line) 50%, var(--accent-soft) 70%) 0 0 / 300% 100%; animation: brillo 1.4s linear infinite; }
   @keyframes brillo { from { background-position: 100% 0; } to { background-position: 0 0; } }
   @media (prefers-reduced-motion: reduce) { .cargando { animation: none; } }
   .card .sin-fotos, .sin-fotos { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; }
-  .galeria img { height: 260px; max-width: calc(100vw - 48px); object-fit: contain; border-radius: 8px; background: var(--accent-soft); scroll-snap-align: start; flex: none; }
+  .galeria img { height: 100%; max-width: calc(100vw - 48px); object-fit: contain; border-radius: 8px; background: var(--accent-soft); scroll-snap-align: start; flex: none; }
   .galeria img.cargando { width: 200px; }
   section.bloque { padding: 8px 24px 16px; }
   section.bloque h4 { margin: 16px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
@@ -96,8 +99,9 @@
   .filtros-in.solo-rutas > :not(.ruta) { display: none; }
   .chip { position: absolute; top: 10px; left: 10px; pointer-events: none; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,.92); color: var(--accent); }
   .card-wrap.descartado .card { opacity: .5; }
-  dialog { overflow: auto; overscroll-behavior: contain; }
-  .ficha { position: relative; background: var(--surface); touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+  dialog.abierta { overflow: auto; }
+  .ficha { position: relative; background: var(--surface); flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+  dialog.abierta .ficha { display: block; flex: none; overflow: visible; touch-action: pan-y; }
   .ficha.volando { transition: transform .25s ease-in; }
   .ficha.volviendo { transition: transform .2s ease-out, opacity .2s ease-out; }
   .indicador { position: fixed; top: 50%; z-index: 6; display: flex; flex-direction: column; align-items: center; gap: 8px; transform: translateY(-50%); opacity: 0; pointer-events: none; --c: var(--accent); }
@@ -110,17 +114,17 @@
   @keyframes pop-indicador { 50% { transform: scale(1.08); } }
   @media (prefers-reduced-motion: reduce) { .indicador .icono { transform: none; } .indicador.listo .icono { animation: none; } }
   .ver-mas { display: block; margin-top: 12px; padding: 8px 18px; border: 1px solid var(--accent); border-radius: 999px; background: none; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
-  .bloque:not(.abierto) .descripcion { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; -webkit-mask-image: linear-gradient(#000 55%, transparent); mask-image: linear-gradient(#000 55%, transparent); }
+  dialog:not(.abierta) .descripcion { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; -webkit-mask-image: linear-gradient(#000 55%, transparent); mask-image: linear-gradient(#000 55%, transparent); }
   .descripcion { margin-top: 12px; }
-  .bloque:not(.abierto) .extra { display: none; }
+  dialog:not(.abierta) .extra { display: none; }
   .ficha.desde-abajo { animation: entrar-abajo .22s ease-out; }
   .ficha.desde-arriba { animation: entrar-arriba .22s ease-out; }
   @keyframes entrar-abajo { from { transform: translateY(40px); opacity: 0; } }
   @keyframes entrar-arriba { from { transform: translateY(-40px); opacity: 0; } }
-  @media (hover: none) { .acciones .navegar { display: none; } }
+  @media (hover: none) { dialog:not(.abierta) .acciones .navegar { display: none; } }
   @media (prefers-reduced-motion: reduce) { .ficha.desde-abajo, .ficha.desde-arriba { animation: none; } }
   .posicion { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
-  .acciones { position: sticky; bottom: 0; z-index: 4; display: flex; justify-content: center; gap: 20px; padding: 16px; background: linear-gradient(transparent, var(--surface) 35%); }
+  .acciones { position: sticky; bottom: 0; z-index: 4; flex: none; display: flex; justify-content: center; gap: 20px; padding: 16px; background: linear-gradient(transparent, var(--surface) 35%); }
   .acciones button { width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 24px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
   .acciones [data-accion="presupuesto"], .acciones [data-accion="favorito"] { color: var(--accent); }
   .pop { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 120px; color: var(--accent); pointer-events: none; opacity: 0; z-index: 5; }
@@ -139,9 +143,9 @@
   .contacto a { color: var(--accent); }
   .quitar { font: inherit; font-size: 14px; color: var(--muted); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
   @media (max-width: 600px) {
-    dialog { width: calc(100vw - 24px); max-width: calc(100vw - 24px); max-height: calc(100dvh - 48px); border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,.35); }
+    dialog { width: calc(100vw - 24px); max-width: calc(100vw - 24px); height: calc(100dvh - 48px); max-height: none; border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,.35); }
     dialog::backdrop { background: rgba(20,15,10,.7); }
-    .galeria img { height: 220px; }
+    dialog.abierta .galeria { height: 220px; }
   }
 </style>
 </head>
@@ -524,6 +528,7 @@ function abrirEn(nuevaCola, i) {
 
 function pintarFicha() {
   const p = cola[posicion];
+  $("detalle").classList.remove("abierta");
   const hayMas = p.descripcion.length > 200 || p.faqs.length || p.opiniones.length;
   $("detalle").innerHTML = `
     <div class="ficha" id="ficha">
@@ -667,33 +672,46 @@ function moverFicha(dx) {
   }
 }
 
+const NAVEGAR_PX = 50;
+
+function moverVertical(dy) {
+  $("ficha").style.transform = `translateY(${dy * 0.4}px)`;
+  $("ficha").style.opacity = 1 - Math.min(Math.abs(dy) / 300, 0.5);
+}
+
+function soltarFicha() {
+  $("ficha").classList.add("volviendo");
+  moverFicha(0);
+  $("ficha").style.opacity = "";
+}
+
 $("detalle").addEventListener("pointerdown", (e) => {
-  if (!e.target.closest(".ficha") || e.target.closest(".galeria, button, a")) return;
-  toque = { id: e.pointerId, x: e.clientX, y: e.clientY, arrastrando: false };
+  if (!e.target.closest(".ficha") || e.target.closest("button, a")) return;
+  toque = { id: e.pointerId, x: e.clientX, y: e.clientY, eje: null, enGaleria: Boolean(e.target.closest(".galeria")) };
 });
 $("detalle").addEventListener("pointermove", (e) => {
   if (!toque || e.pointerId !== toque.id || (e.pointerType === "mouse" && !e.buttons)) return;
   const dx = e.clientX - toque.x;
   const dy = e.clientY - toque.y;
-  if (!toque.arrastrando) {
-    if (Math.abs(dy) > INICIO_ARRASTRE_PX && Math.abs(dy) > Math.abs(dx)) { toque = null; return; }
-    if (Math.abs(dx) < INICIO_ARRASTRE_PX) return;
-    toque.arrastrando = true;
+  if (!toque.eje) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < INICIO_ARRASTRE_PX) return;
+    toque.eje = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    const loHaceElNavegador = toque.eje === "x" ? toque.enGaleria : $("detalle").classList.contains("abierta");
+    if (loHaceElNavegador) { toque = null; return; }
     $("ficha").classList.remove("volviendo");
     $("ficha").style.transformOrigin = `50% ${$("detalle").scrollTop + $("detalle").clientHeight / 2}px`;
+    try { $("ficha").setPointerCapture(e.pointerId); } catch {}
   }
-  moverFicha(dx);
+  if (toque.eje === "x") moverFicha(dx); else moverVertical(dy);
 });
 $("detalle").addEventListener("pointerup", (e) => {
   if (!toque || e.pointerId !== toque.id) return;
   const dx = e.clientX - toque.x;
-  const arrastrando = toque.arrastrando;
+  const dy = e.clientY - toque.y;
+  const eje = toque.eje;
   toque = null;
-  if (arrastrando) {
-    if (Math.abs(dx) > $("ficha").offsetWidth / 3) return decidir(dx > 0 ? "presupuesto" : "descartar");
-    $("ficha").classList.add("volviendo");
-    return moverFicha(0);
-  }
+  if (eje === "x") return Math.abs(dx) > $("ficha").offsetWidth / 3 ? decidir(dx > 0 ? "presupuesto" : "descartar") : soltarFicha();
+  if (eje === "y") return Math.abs(dy) >= NAVEGAR_PX ? navegar(dy < 0 ? 1 : -1) : soltarFicha();
   const ahora = Date.now();
   if (ahora - ultimoToque < DOBLE_TOQUE_MS) {
     ultimoToque = 0;
@@ -702,43 +720,8 @@ $("detalle").addEventListener("pointerup", (e) => {
   ultimoToque = ahora;
 });
 $("detalle").addEventListener("pointercancel", () => {
-  if (toque?.arrastrando) { $("ficha").classList.add("volviendo"); moverFicha(0); }
+  if (toque?.eje) soltarFicha();
   toque = null;
-});
-
-const NAVEGAR_PX = 50;
-let deslizar = null;
-
-$("detalle").addEventListener("touchstart", (e) => {
-  deslizar = e.touches.length === 1 && { x: e.touches[0].clientX, y: e.touches[0].clientY, scroll: $("detalle").scrollTop };
-}, { passive: true });
-function gestoVertical(toqueActual) {
-  const dx = toqueActual.clientX - deslizar.x;
-  const dy = toqueActual.clientY - deslizar.y;
-  const leyendo = Math.abs($("detalle").scrollTop - deslizar.scroll) > 2;
-  return leyendo || Math.abs(dy) < Math.abs(dx) * 1.5 ? 0 : dy;
-}
-
-function soltarFicha() {
-  const ficha = $("ficha");
-  ficha.classList.add("volviendo");
-  ficha.style.transform = ficha.style.opacity = "";
-}
-
-$("detalle").addEventListener("touchmove", (e) => {
-  if (!deslizar || toque?.arrastrando) return;
-  const dy = gestoVertical(e.touches[0]);
-  if (!dy) return soltarFicha();
-  const ficha = $("ficha");
-  ficha.classList.remove("volviendo");
-  ficha.style.transform = `translateY(${dy * 0.4}px)`;
-  ficha.style.opacity = 1 - Math.min(Math.abs(dy) / 300, 0.5);
-}, { passive: true });
-$("detalle").addEventListener("touchend", (e) => {
-  if (!deslizar || toque?.arrastrando) return;
-  const dy = gestoVertical(e.changedTouches[0]);
-  if (Math.abs(dy) < NAVEGAR_PX) return soltarFicha();
-  navegar(dy < 0 ? 1 : -1);
 });
 
 document.addEventListener("keydown", (e) => {
@@ -765,7 +748,7 @@ $("detalle").addEventListener("click", (e) => {
   if (e.target === $("detalle") || e.target.closest(".cerrar")) return $("detalle").close();
   const verMas = e.target.closest(".ver-mas");
   if (verMas) {
-    verMas.closest(".bloque").classList.add("abierto");
+    $("detalle").classList.add("abierta");
     return verMas.remove();
   }
   const accion = e.target.closest("[data-accion]");
