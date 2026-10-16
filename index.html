@@ -33,7 +33,8 @@
   input[type=search] { flex: 1 1 220px; }
   .cuenta { color: var(--muted); font-size: 14px; margin-left: auto; }
   main { max-width: 1200px; margin: 0 auto; padding: 16px; }
-  .grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .grilla { display: flex; flex-direction: column; gap: 16px; }
+  .pagina { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
   .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; cursor: pointer; text-align: left; padding: 0; font: inherit; color: inherit; transition: transform .15s, box-shadow .15s; }
   .card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.08); }
   .card-wrap { position: relative; display: flex; }
@@ -50,7 +51,6 @@
   .precio { margin-top: 10px; font-size: 14px; color: var(--accent); font-weight: 600; }
   [hidden] { display: none !important; }
   .vacio { text-align: center; color: var(--muted); padding: 64px 16px; }
-  .mas { display: block; margin: 24px auto; padding: 10px 24px; border-radius: 999px; border: 1px solid var(--accent); background: none; color: var(--accent); font: inherit; cursor: pointer; }
   dialog { border: none; border-radius: var(--radius); padding: 0; width: min(860px, calc(100vw - 32px)); max-height: calc(100vh - 32px); background: var(--surface); color: var(--ink); }
   dialog::backdrop { background: rgba(20,15,10,.55); }
   .det-head { padding: 20px 24px 8px; display: flex; gap: 16px; align-items: flex-start; }
@@ -139,7 +139,7 @@
   <div class="grilla" id="grilla"></div>
   <div class="presupuesto" id="presupuesto" hidden></div>
   <p class="vacio" id="vacio" hidden></p>
-  <button class="mas" id="mas" hidden>Ver más</button>
+  <div id="fin"></div>
 </main>
 <dialog id="detalle"></dialog>
 <div class="aviso" id="aviso" popover="manual"><span id="aviso-texto"></span><button id="deshacer">Deshacer</button></div>
@@ -167,6 +167,7 @@ const INICIO_ARRASTRE_PX = 12;
 const datos = {};
 let lista = [];
 let mostrados = 0;
+const MARGEN_PX = 1500;
 const $ = (id) => document.getElementById(id);
 
 let estado = {};
@@ -317,10 +318,9 @@ async function mostrar() {
 
 function vaciar(mensaje) {
   lista = [];
-  $("grilla").innerHTML = "";
+  reiniciarGrilla();
   $("vacio").hidden = false;
   $("vacio").textContent = mensaje;
-  $("mas").hidden = true;
   $("cuenta").textContent = "";
 }
 
@@ -350,8 +350,7 @@ function filtrar() {
   $("cuenta").textContent = `${lista.length} de ${provs.length} proveedores`;
   $("vacio").hidden = lista.length > 0;
   $("vacio").textContent = "Nada coincide con estos filtros.";
-  $("grilla").innerHTML = "";
-  mostrados = 0;
+  reiniciarGrilla();
   mostrarMas();
 }
 
@@ -359,7 +358,8 @@ function tarjeta(p, i) {
   const nota = p.nota ? `<span class="estrellas">${estrellas(p.nota)}</span> ${esc(p.nota)} · ${p.n_opiniones} opiniones` : "Sin opiniones";
   const descartado = MARCAS.descartados.has(p.url);
   const chip = MARCAS.presupuesto.has(p.url) ? "＄ Presupuesto" : descartado ? "Descartado" : "";
-  return `<div class="card-wrap${descartado ? " descartado" : ""}" data-url="${esc(p.url)}"><button class="card" data-i="${i}">
+  const oculto = descartado && vista() === "catalogo" && !$("descartados").checked;
+  return `<div class="card-wrap${descartado ? " descartado" : ""}" data-url="${esc(p.url)}"${oculto ? " hidden" : ""}><button class="card" data-i="${i}">
     ${p.fotos.length ? imgFoto(p.r2 ? urlR2(p, "portada.webp") : urlFoto(p.fotos[0][0]), "foto") : sinFotos("Sin fotos en el archivo")}
     <div class="cuerpo">
       <h3>${esc(p.nombre)}</h3>
@@ -371,19 +371,39 @@ function tarjeta(p, i) {
 }
 
 function actualizarTarjeta(url) {
-  const wrap = [...document.querySelectorAll(".card-wrap")].find((w) => w.dataset.url === url);
-  if (!wrap) return;
-  const i = Number(wrap.querySelector(".card").dataset.i);
-  wrap.outerHTML = tarjeta(lista[i], i);
-  const nuevo = [...document.querySelectorAll(".card-wrap")].find((w) => w.dataset.url === url);
-  nuevo.hidden = vista() === "catalogo" && !$("descartados").checked && MARCAS.descartados.has(url);
+  const card = [...document.querySelectorAll(".card-wrap")].find((w) => w.dataset.url === url)?.querySelector(".card");
+  if (card) card.parentElement.outerHTML = tarjeta(lista[card.dataset.i], card.dataset.i);
+}
+
+const visor = new IntersectionObserver((entradas) => entradas.forEach(({ target: pagina, isIntersecting }) => {
+  if (isIntersecting && !pagina.firstChild) {
+    pagina.innerHTML = cartas(Number(pagina.dataset.desde));
+    pagina.style.height = "";
+  } else if (!isIntersecting && pagina.firstChild) {
+    pagina.style.height = `${pagina.offsetHeight}px`;
+    pagina.innerHTML = "";
+  }
+}), { rootMargin: `${MARGEN_PX}px 0px` });
+new IntersectionObserver(([fin]) => fin.isIntersecting && mostrarMas(), { rootMargin: `${MARGEN_PX}px 0px` }).observe($("fin"));
+
+function cartas(desde) {
+  return lista.slice(desde, desde + POR_PAGINA).map((p, k) => tarjeta(p, desde + k)).join("");
+}
+
+function reiniciarGrilla() {
+  visor.disconnect();
+  $("grilla").innerHTML = "";
+  mostrados = 0;
 }
 
 function mostrarMas() {
-  const lote = lista.slice(mostrados, mostrados + POR_PAGINA);
-  $("grilla").insertAdjacentHTML("beforeend", lote.map((p, k) => tarjeta(p, mostrados + k)).join(""));
-  mostrados += lote.length;
-  $("mas").hidden = mostrados >= lista.length;
+  while (mostrados < lista.length && $("fin").getBoundingClientRect().top < innerHeight + MARGEN_PX) {
+    const pagina = Object.assign(document.createElement("div"), { className: "pagina", innerHTML: cartas(mostrados) });
+    pagina.dataset.desde = mostrados;
+    $("grilla").append(pagina);
+    visor.observe(pagina);
+    mostrados += POR_PAGINA;
+  }
 }
 
 function numeroWhatsapp(telefono) {
@@ -628,7 +648,6 @@ $("revisar").addEventListener("click", () => {
   if (!pendientes.length) return avisar("No quedan proveedores sin revisar con estos filtros.", null);
   abrirEn(pendientes, 0, true);
 });
-$("mas").addEventListener("click", mostrarMas);
 $("categoria").addEventListener("change", mostrar);
 window.addEventListener("hashchange", mostrar);
 FILTROS.forEach((id) => $(id).addEventListener("input", () => {
