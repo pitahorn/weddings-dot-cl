@@ -10,13 +10,13 @@
   :root {
     --bg: #fdf6f7; --surface: #ffffff; --ink: #2a2228; --muted: #6e5f68; --line: #f0dfe4;
     --accent: #b03a63; --accent-soft: #f9e4ea; --star: #a87a0a; --radius: 12px;
-    --descartar: #6b5a70; --sobre-color: #fff;
+    --descartar: #6b5a70; --sobre-color: #fff; --presupuesto: #2f7d52;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #1d1720; --surface: #28202b; --ink: #f6eef2; --muted: #b9a8b2; --line: #3d3040;
       --accent: #f08bab; --accent-soft: #3d2431; --star: #f2c230;
-      --descartar: #cfc3d2; --sobre-color: #28202b;
+      --descartar: #cfc3d2; --sobre-color: #28202b; --presupuesto: #6fcf97;
     }
   }
   * { box-sizing: border-box; }
@@ -55,7 +55,7 @@
   [hidden] { display: none !important; }
   .vacio { text-align: center; color: var(--muted); padding: 64px 16px; }
   dialog { border: none; border-radius: var(--radius); padding: 0; width: min(860px, calc(100vw - 32px)); height: min(820px, calc(100dvh - 32px)); background: var(--surface); color: var(--ink); overflow: hidden; overscroll-behavior: contain; }
-  dialog[open] { display: flex; flex-direction: column; }
+  dialog[open] { display: flex; flex-direction: column; transition: background .2s; }
   body:has(#detalle[open]) { overflow: hidden; }
   dialog::backdrop { background: rgba(20,15,10,.55); }
   .det-head { padding: 20px 24px 8px; display: flex; gap: 16px; align-items: flex-start; }
@@ -100,16 +100,18 @@
   .chip { position: absolute; top: 10px; left: 10px; pointer-events: none; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,.92); color: var(--accent); }
   .card-wrap.descartado .card { opacity: .5; }
   dialog.abierta { overflow: auto; }
-  .ficha { position: relative; background: var(--surface); flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .ficha { position: relative; background: var(--surface); border-radius: inherit; box-shadow: inset 0 0 0 1px var(--line); flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
   dialog.abierta .ficha { display: block; flex: none; overflow: visible; touch-action: pan-y; }
   .ficha.volando { transition: transform .25s ease-in; }
   .ficha.volviendo { transition: transform .2s ease-out, opacity .2s ease-out; }
-  .indicador { position: fixed; top: 50%; z-index: 6; display: flex; flex-direction: column; align-items: center; gap: 8px; transform: translateY(-50%); opacity: 0; pointer-events: none; --c: var(--accent); }
+  .indicador { position: fixed; top: 50%; z-index: 6; display: flex; flex-direction: column; align-items: center; gap: 8px; transform: translateY(-50%); opacity: 0; pointer-events: none; --c: var(--presupuesto); }
+  .basura { width: 1em; height: 1em; }
+  .chip-presupuesto { color: var(--presupuesto); }
   .indicador-si { left: 16px; }
   .indicador-no { right: 16px; --c: var(--descartar); }
   .indicador .icono { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; border: 2px solid var(--c); color: var(--c); background: var(--surface); transform: scale(var(--escala, .7)); }
   .indicador.listo .icono { background: var(--c); color: var(--sobre-color); animation: pop-indicador .16s ease-out; }
-  .indicador .etiqueta { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: var(--c); color: var(--sobre-color); opacity: 0; }
+  .indicador .etiqueta { white-space: nowrap; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: var(--c); color: var(--sobre-color); opacity: 0; }
   .indicador.listo .etiqueta { opacity: 1; transition: opacity .12s; }
   @keyframes pop-indicador { 50% { transform: scale(1.08); } }
   @media (prefers-reduced-motion: reduce) { .indicador .icono { transform: none; } .indicador.listo .icono { animation: none; } }
@@ -117,6 +119,7 @@
   dialog:not(.abierta) .descripcion { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; -webkit-mask-image: linear-gradient(#000 55%, transparent); mask-image: linear-gradient(#000 55%, transparent); }
   .descripcion { margin-top: 12px; }
   dialog:not(.abierta) .extra { display: none; }
+  dialog.abierta .ver-mas { position: sticky; bottom: 96px; z-index: 4; margin: 16px auto 0; background: var(--surface); box-shadow: 0 4px 16px rgba(0,0,0,.25); }
   .ficha.desde-abajo { animation: entrar-abajo .22s ease-out; }
   .ficha.desde-arriba { animation: entrar-arriba .22s ease-out; }
   @keyframes entrar-abajo { from { transform: translateY(40px); opacity: 0; } }
@@ -125,8 +128,9 @@
   @media (prefers-reduced-motion: reduce) { .ficha.desde-abajo, .ficha.desde-arriba { animation: none; } }
   .posicion { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
   .acciones { position: sticky; bottom: 0; z-index: 4; flex: none; display: flex; justify-content: center; gap: 20px; padding: 16px; background: linear-gradient(transparent, var(--surface) 35%); }
-  .acciones button { width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 24px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
-  .acciones [data-accion="presupuesto"], .acciones [data-accion="favorito"] { color: var(--accent); }
+  .acciones button { width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 24px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.12); display: inline-flex; align-items: center; justify-content: center; }
+  .acciones [data-accion="favorito"] { color: var(--accent); }
+  .acciones [data-accion="presupuesto"] { color: var(--presupuesto); }
   .pop { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 120px; color: var(--accent); pointer-events: none; opacity: 0; z-index: 5; }
   .pop.on { animation: pop .7s ease-out; }
   @keyframes pop { 0% { opacity: 0; transform: scale(.4); } 30% { opacity: .95; transform: scale(1.1); } 100% { opacity: 0; transform: scale(1); } }
@@ -219,6 +223,7 @@ const RUTAS = { "#favoritos": "favoritos", "#presupuesto": "presupuesto" };
 const SEGUNDOS_DESHACER = 5;
 const DOBLE_TOQUE_MS = 300;
 const INICIO_ARRASTRE_PX = 12;
+const BASURA = `<svg class="basura" viewBox="0 -960 960 960" aria-hidden="true"><path fill="currentColor" d="M261-120q-24.75 0-42.37-17.63Q201-155.25 201-180v-570h-41v-60h188v-30h264v30h188v60h-41v570q0 24-18 42t-42 18H261Zm438-630H261v570h438v-570ZM367-266h60v-399h-60v399Zm166 0h60v-399h-60v399ZM261-750v570-570Z"/></svg>`;
 
 const datos = {};
 let lista = [];
@@ -431,7 +436,7 @@ function tarjeta(p, i) {
       <div class="meta">${esc([p.comuna, p.region].filter(Boolean).join(", "))}</div>
       ${p.precio ? `<div class="precio">${esc(p.precio.split("(")[0])}</div>` : ""}
     </div>
-  </button>${chip ? `<span class="chip">${chip}</span>` : ""}${corazon(p)}</div>`;
+  </button>${chip ? `<span class="chip${MARCAS.presupuesto.has(p.url) ? " chip-presupuesto" : ""}">${chip}</span>` : ""}${corazon(p)}</div>`;
 }
 
 function actualizarTarjeta(url) {
@@ -529,6 +534,7 @@ function abrirEn(nuevaCola, i) {
 function pintarFicha() {
   const p = cola[posicion];
   $("detalle").classList.remove("abierta");
+  $("detalle").style.background = $("detalle").style.transition = "";
   const hayMas = p.descripcion.length > 200 || p.faqs.length || p.opiniones.length;
   $("detalle").innerHTML = `
     <div class="ficha" id="ficha">
@@ -559,14 +565,14 @@ function pintarFicha() {
     </div>
     <div class="acciones">
       <button class="navegar" data-accion="anterior" aria-label="Proveedor anterior">▲</button>
-      <button data-accion="descartar" aria-label="Descartar">✕</button>
+      <button data-accion="descartar" aria-label="Descartar">${BASURA}</button>
       <button data-accion="favorito" aria-label="Favorito">${MARCAS.favoritos.has(p.url) ? "♥" : "♡"}</button>
       <button data-accion="presupuesto" aria-label="Agregar a mi presupuesto">＄</button>
       <button class="navegar" data-accion="siguiente" aria-label="Proveedor siguiente">▼</button>
     </div>
     <div class="pop" id="pop">♥</div>
-    <div class="indicador indicador-si" id="indicador-si"><span class="icono">＄</span><span class="etiqueta">Al presupuesto</span></div>
-    <div class="indicador indicador-no" id="indicador-no"><span class="icono">✕</span><span class="etiqueta">Descartar</span></div>
+    <div class="indicador indicador-si" id="indicador-si"><span class="icono">＄</span><span class="etiqueta">Agregar al presupuesto</span></div>
+    <div class="indicador indicador-no" id="indicador-no"><span class="icono">${BASURA}</span><span class="etiqueta">Descartar</span></div>
     ${pistaVista ? "" : `<div class="pista" id="pista">→ presupuesto · ← descartar · 2× favorito · ↕ siguiente</div>`}`;
   $("detalle").scrollTop = 0;
 }
@@ -662,7 +668,10 @@ function moverFicha(dx) {
   const progreso = Math.min(1, Math.abs(dx) / ($("ficha").offsetWidth / 3));
   const listo = progreso >= 1;
   $("ficha").style.transform = `translateX(${dx}px)${SIN_MOVIMIENTO ? "" : ` rotate(${dx / 25}deg)`}`;
-  $("ficha").style.boxShadow = dx ? `inset 0 0 0 2px color-mix(in srgb, ${dx > 0 ? "var(--accent)" : "var(--descartar)"} ${listo ? 100 : progreso * 50}%, transparent)` : "";
+  const color = dx > 0 ? "var(--presupuesto)" : "var(--descartar)";
+  $("ficha").style.boxShadow = dx ? `inset 0 0 0 2px color-mix(in srgb, ${color} ${listo ? 100 : progreso * 50}%, var(--line))` : "";
+  $("detalle").style.background = dx ? `color-mix(in srgb, ${color} ${listo ? 20 : progreso * 14}%, var(--surface))` : "";
+  $("detalle").style.transition = dx ? "none" : "";
   for (const [lado, indicador] of [[1, $("indicador-si")], [-1, $("indicador-no")]]) {
     const activo = Math.sign(dx) === lado;
     indicador.style.opacity = activo ? Math.min(1, Math.max(0, (progreso - 0.1) / 0.6)) : 0;
