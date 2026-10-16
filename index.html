@@ -117,6 +117,7 @@ const GRUPOS = {
 const CATEGORIAS = Object.assign({}, ...Object.values(GRUPOS));
 const POR_PAGINA = 24;
 const ARCHIVO = "https://web.archive.org/web/";
+const R2 = "https://pub-95b399b3450e4eb29238ae65c72a02e5.r2.dev";
 const CATEGORIA_INICIAL = "musica-matrimonio";
 const FILTROS = ["buscar", "region", "nota", "fotos", "orden"];
 const RUTA_FAVORITOS = "#favoritos";
@@ -145,8 +146,12 @@ function urlFoto(ref) {
   return `${ARCHIVO}${ref.slice(0, corte)}im_/https://cdn0.matrimonios.cl/${ref.slice(corte + 1)}`;
 }
 
-function imgFoto(ref, clase) {
-  return `<img class="${clase} cargando" loading="lazy" alt="" src="${urlFoto(ref)}">`;
+function urlR2(p, archivo) {
+  return `${R2}/${categoriaDe(p.url)}/${p.url.match(/--e(\d+)/)[1]}/${archivo}`;
+}
+
+function imgFoto(src, clase) {
+  return `<img class="${clase} cargando" loading="lazy" alt="" src="${src}">`;
 }
 
 function sinFotos(texto) {
@@ -291,7 +296,7 @@ function filtrar() {
 function tarjeta(p, i) {
   const nota = p.nota ? `<span class="estrellas">${estrellas(p.nota)}</span> ${esc(p.nota)} · ${p.n_opiniones} opiniones` : "Sin opiniones";
   return `<div class="card-wrap"><button class="card" data-i="${i}">
-    ${p.fotos.length ? imgFoto(p.fotos[0][0], "foto") : sinFotos("Sin fotos en el archivo")}
+    ${p.fotos.length ? imgFoto(p.r2 ? urlR2(p, "portada.webp") : urlFoto(p.fotos[0][0]), "foto") : sinFotos("Sin fotos en el archivo")}
     <div class="cuerpo">
       <h3>${esc(p.nombre)}</h3>
       <div class="meta">${nota}</div>
@@ -320,7 +325,7 @@ function abrir(p) {
       ${corazon(p)}
       <button class="cerrar" aria-label="Cerrar">×</button>
     </div>
-    ${p.fotos.length ? `<div class="galeria">${p.fotos.map(([, grande]) => imgFoto(grande, "")).join("")}</div>` : ""}
+    ${p.fotos.length ? `<div class="galeria">${p.fotos.map(([, grande], n) => imgFoto(p.r2 ? urlR2(p, `${n + 1}.webp`) : urlFoto(grande), "")).join("")}</div>` : ""}
     <section class="bloque">
       <div class="links">${mapa}<a target="_blank" rel="noopener" href="https://web.archive.org/web/${p.ts}/${esc(p.url)}">Ver ficha original en el archivo</a></div>
       ${p.descripcion ? `<h4>Descripción</h4><div class="descripcion">${esc(p.descripcion)}</div>` : ""}

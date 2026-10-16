@@ -262,7 +262,10 @@ def armar(cat):
         if not canonica:
             continue
         url = htmllib.unescape(canonica.group(1))
-        proveedores.append(extraer(html, url, ts_por_id.get(archivo.name.split(".")[0], DESDE)))
+        datos = extraer(html, url, ts_por_id.get(archivo.name.split(".")[0], DESDE))
+        if (RAIZ / "fotos" / cat / archivo.name.split(".")[0] / "portada.webp").exists():
+            datos["r2"] = True  # fotos.py + subir.py ya las dejaron en R2
+        proveedores.append(datos)
     DATA.mkdir(exist_ok=True)
     cuerpo = json.dumps(proveedores, ensure_ascii=False, separators=(",", ":"))
     (DATA / f"{cat}.js").write_text(f"CATALOGO.agregar({json.dumps(cat)},{cuerpo});\n", "utf-8")
