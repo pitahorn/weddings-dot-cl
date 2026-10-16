@@ -133,7 +133,7 @@
   .ficha.desde-arriba { animation: entrar-arriba .22s ease-out; }
   @keyframes entrar-abajo { from { transform: translateY(40px); opacity: 0; } }
   @keyframes entrar-arriba { from { transform: translateY(-40px); opacity: 0; } }
-  @media (hover: none) { dialog:not(.abierta) .acciones .navegar { display: none; } }
+  @media (hover: none) { .acciones .navegar { display: none; } }
   @media (prefers-reduced-motion: reduce) { .ficha.desde-abajo, .ficha.desde-arriba { animation: none; } }
   .posicion { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
   .acciones { position: sticky; bottom: 0; z-index: 4; flex: none; display: flex; justify-content: center; gap: 20px; padding: 16px; }
