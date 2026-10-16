@@ -76,4 +76,5 @@ if __name__ == "__main__":
     for categoria in sys.argv[1:]:
         archivos = sorted((FOTOS / categoria).rglob("*.webp"))
         nuevas = sum(subir(env, a) for a in archivos)
+        (FOTOS / categoria / ".subido").touch()  # scraper.armar solo apunta a R2 lo que ya subió
         print(f"{categoria}: {nuevas} subidas, {len(archivos) - nuevas} ya estaban", flush=True)

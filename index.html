@@ -31,7 +31,6 @@
   .filtros-in { max-width: 1200px; margin: 0 auto; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   select, input { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
   input[type=search] { flex: 1 1 220px; }
-  .ir-favoritos { color: var(--accent); font-weight: 600; text-decoration: none; padding: 8px 4px; white-space: nowrap; }
   .cuenta { color: var(--muted); font-size: 14px; margin-left: auto; }
   main { max-width: 1200px; margin: 0 auto; padding: 16px; }
   .grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
@@ -73,6 +72,42 @@
   .opinion > div + div { margin-top: 4px; }
   .opinion .quien { font-weight: 600; }
   .links a { color: var(--accent); margin-right: 16px; }
+  .ruta { color: var(--accent); font-weight: 600; text-decoration: none; padding: 8px 4px; white-space: nowrap; }
+  .toggle { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); white-space: nowrap; }
+  .revisar { font: inherit; font-weight: 600; color: #fff; background: var(--accent); border: none; border-radius: 999px; padding: 8px 18px; cursor: pointer; }
+  .filtros-in.solo-rutas > :not(.ruta) { display: none; }
+  .chip { position: absolute; top: 10px; left: 10px; pointer-events: none; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,.92); color: var(--accent); }
+  .card-wrap.descartado .card { opacity: .5; }
+  dialog { overflow: auto; overscroll-behavior: contain; }
+  .ficha { position: relative; background: var(--surface); touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+  .ficha.volando { transition: transform .25s ease-in; }
+  .ficha.volviendo { transition: transform .2s ease-out; }
+  .sello { position: absolute; top: 28px; z-index: 3; padding: 4px 14px; border: 3px solid; border-radius: 8px; font-weight: 800; font-size: 22px; text-transform: uppercase; letter-spacing: .06em; opacity: 0; pointer-events: none; background: var(--surface); }
+  .sello-no { right: 24px; color: var(--muted); transform: rotate(12deg); }
+  .sello-si { left: 24px; color: var(--accent); transform: rotate(-12deg); }
+  .posicion { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .acciones { position: sticky; bottom: 0; z-index: 4; display: flex; justify-content: center; gap: 24px; padding: 16px; background: linear-gradient(transparent, var(--surface) 35%); }
+  .acciones button { width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 24px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+  .acciones [data-accion="presupuesto"], .acciones [data-accion="favorito"] { color: var(--accent); }
+  .pop { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 120px; color: var(--accent); pointer-events: none; opacity: 0; z-index: 5; }
+  .pop.on { animation: pop .7s ease-out; }
+  @keyframes pop { 0% { opacity: 0; transform: scale(.4); } 30% { opacity: .95; transform: scale(1.1); } 100% { opacity: 0; transform: scale(1); } }
+  @media (prefers-reduced-motion: reduce) { .pop.on { animation: none; } .ficha.volando, .ficha.volviendo { transition: none; } }
+  .aviso { inset: auto 0 24px 0; margin: 0 auto; width: fit-content; max-width: calc(100vw - 32px); border: none; border-radius: 999px; padding: 10px 12px 10px 20px; background: var(--ink); color: var(--bg); display: none; align-items: center; gap: 16px; font-size: 15px; }
+  .aviso:popover-open { display: flex; }
+  .aviso button { font: inherit; font-weight: 700; color: var(--accent); background: none; border: none; cursor: pointer; padding: 4px 8px; }
+  .presupuesto h2 { font: 600 22px/1.2 Georgia, serif; margin: 24px 0 12px; }
+  .item-p { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+  .item-p h3 { margin: 0 0 4px; font-size: 17px; }
+  .item-p .ver { font: inherit; font-weight: 600; color: var(--ink); background: none; border: none; padding: 0; cursor: pointer; text-align: left; }
+  .item-p .precio { margin-top: 4px; }
+  .contacto { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 14px; }
+  .contacto a { color: var(--accent); }
+  .quitar { font: inherit; font-size: 14px; color: var(--muted); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+  @media (max-width: 600px) {
+    dialog { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; }
+    .galeria img { height: 220px; }
+  }
 </style>
 </head>
 <body>
@@ -81,8 +116,9 @@
   <p class="sub">Fichas de matrimonios.cl rescatadas de Wayback Machine (capturas 2025). Las fotos cargan desde el archivo, así que necesitan internet.</p>
   <details class="estado" id="estado"></details>
 </header>
-<div class="filtros"><div class="filtros-in">
-  <a class="ir-favoritos" id="ir-favoritos"></a>
+<div class="filtros"><div class="filtros-in" id="barra">
+  <a class="ruta" id="ir-favoritos"></a>
+  <a class="ruta" id="ir-presupuesto"></a>
   <select id="categoria"></select>
   <input id="buscar" type="search" placeholder="Buscar por nombre, comuna o descripción…">
   <select id="region"><option value="">Todas las zonas</option></select>
@@ -95,15 +131,18 @@
   <select id="orden">
     <option value="opiniones">Más opiniones</option><option value="nota">Mejor nota</option><option value="nombre">Nombre A–Z</option>
   </select>
+  <label class="toggle"><input type="checkbox" id="descartados"> Mostrar descartados</label>
+  <button class="revisar" id="revisar">Revisar</button>
   <span class="cuenta" id="cuenta"></span>
 </div></div>
 <main>
   <div class="grilla" id="grilla"></div>
+  <div class="presupuesto" id="presupuesto" hidden></div>
   <p class="vacio" id="vacio" hidden></p>
   <button class="mas" id="mas" hidden>Ver más</button>
 </main>
 <dialog id="detalle"></dialog>
-
+<div class="aviso" id="aviso" popover="manual"><span id="aviso-texto"></span><button id="deshacer">Deshacer</button></div>
 <script>
 const GRUPOS = {
   "Lugar": { "centros-de-eventos": "Centros de eventos", "casona-de-eventos": "Casonas", "parcela-de-eventos": "Parcelas", "hoteles-matrimonios": "Hoteles", "restaurantes-matrimonios": "Restaurantes", "salones-eventos": "Salones", "locales-eventos": "Locales", "espacios-singulares": "Espacios singulares", "carpas-de-eventos": "Carpas", "bodas-en-la-playa": "Bodas en la playa", "destination-wedding": "Destination wedding", "lugares-matrimonios": "Otros lugares" },
@@ -119,8 +158,11 @@ const POR_PAGINA = 24;
 const ARCHIVO = "https://web.archive.org/web/";
 const R2 = "https://pub-95b399b3450e4eb29238ae65c72a02e5.r2.dev";
 const CATEGORIA_INICIAL = "musica-matrimonio";
-const FILTROS = ["buscar", "region", "nota", "fotos", "orden"];
-const RUTA_FAVORITOS = "#favoritos";
+const FILTROS = ["buscar", "region", "nota", "fotos", "orden", "descartados"];
+const RUTAS = { "#favoritos": "favoritos", "#presupuesto": "presupuesto" };
+const SEGUNDOS_DESHACER = 5;
+const DOBLE_TOQUE_MS = 300;
+const INICIO_ARRASTRE_PX = 12;
 
 const datos = {};
 let lista = [];
@@ -129,13 +171,20 @@ const $ = (id) => document.getElementById(id);
 
 let estado = {};
 let filtrosGuardados = {};
-let favoritos = new Set();
-try { favoritos = new Set(JSON.parse(localStorage.getItem("favoritos")) || []); } catch {}
 let actualizado = "";
+const MARCAS = { favoritos: leerMarca("favoritos"), presupuesto: leerMarca("presupuesto"), descartados: leerMarca("descartados") };
 window.CATALOGO = {
   agregar(cat, proveedores) { datos[cat] = proveedores; },
   estado(porCategoria, fecha) { estado = porCategoria; actualizado = fecha; },
 };
+
+function leerMarca(clave) {
+  try { return new Set(JSON.parse(localStorage.getItem(clave)) || []); } catch { return new Set(); }
+}
+
+function guardarMarca(clave) {
+  try { localStorage.setItem(clave, JSON.stringify([...MARCAS[clave]])); } catch {}
+}
 
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -151,7 +200,7 @@ function urlR2(p, archivo) {
 }
 
 function imgFoto(src, clase) {
-  return `<img class="${clase} cargando" loading="lazy" alt="" src="${src}">`;
+  return `<img class="${clase} cargando" loading="lazy" alt="" draggable="false" src="${src}">`;
 }
 
 function sinFotos(texto) {
@@ -205,42 +254,60 @@ function categoriaDe(url) {
   return new URL(url).pathname.split("/")[1];
 }
 
-function enFavoritos() {
-  return location.hash === RUTA_FAVORITOS;
+function vista() {
+  return RUTAS[location.hash] || "catalogo";
+}
+
+function indeciso(p) {
+  return !MARCAS.presupuesto.has(p.url) && !MARCAS.descartados.has(p.url);
 }
 
 function proveedoresDe() {
-  if (!enFavoritos()) return datos[$("categoria").value];
-  return Object.values(datos).flat().filter((p) => favoritos.has(p.url));
+  const v = vista();
+  if (v === "catalogo") return datos[$("categoria").value];
+  return Object.values(datos).flat().filter((p) => MARCAS[v].has(p.url));
 }
 
-function pintarEnlaceFavoritos() {
-  $("ir-favoritos").href = enFavoritos() ? "#" : RUTA_FAVORITOS;
-  $("ir-favoritos").textContent = enFavoritos() ? "← Todo el catálogo" : `♥ Mis favoritos · ${favoritos.size}`;
+function pintarRutas() {
+  const v = vista();
+  $("ir-favoritos").href = v === "favoritos" ? "#" : "#favoritos";
+  $("ir-favoritos").textContent = v === "favoritos" ? "← Todo el catálogo" : `♥ Favoritos · ${MARCAS.favoritos.size}`;
+  $("ir-presupuesto").href = v === "presupuesto" ? "#" : "#presupuesto";
+  $("ir-presupuesto").textContent = v === "presupuesto" ? "← Todo el catálogo" : `＄ Mi presupuesto · ${MARCAS.presupuesto.size}`;
 }
 
 function corazon(p) {
-  const on = favoritos.has(p.url);
+  const on = MARCAS.favoritos.has(p.url);
   return `<button class="corazon" data-url="${esc(p.url)}" aria-pressed="${on}" aria-label="${on ? "Quitar de" : "Agregar a"} favoritos">${on ? "♥" : "♡"}</button>`;
 }
 
 function alternarFavorito(url) {
-  if (favoritos.has(url)) favoritos.delete(url); else favoritos.add(url);
-  try { localStorage.setItem("favoritos", JSON.stringify([...favoritos])); } catch {}
+  if (MARCAS.favoritos.has(url)) MARCAS.favoritos.delete(url); else MARCAS.favoritos.add(url);
+  guardarMarca("favoritos");
   document.querySelectorAll(".corazon").forEach((b) => {
     if (b.dataset.url === url) b.outerHTML = corazon({ url });
   });
-  pintarEnlaceFavoritos();
+  const boton = document.querySelector('.acciones [data-accion="favorito"]');
+  if (boton) boton.textContent = MARCAS.favoritos.has(url) ? "♥" : "♡";
+  pintarRutas();
 }
 
 async function mostrar() {
-  pintarEnlaceFavoritos();
-  $("categoria").hidden = enFavoritos();
-  if (enFavoritos()) await Promise.all([...new Set([...favoritos].map(categoriaDe))].map(cargar));
-  else {
+  const v = vista();
+  pintarRutas();
+  $("barra").classList.toggle("solo-rutas", v === "presupuesto");
+  $("categoria").hidden = v !== "catalogo";
+  $("revisar").hidden = $("descartados").parentElement.hidden = v !== "catalogo";
+  if (v === "catalogo") {
     try { localStorage.setItem("categoria", $("categoria").value); } catch {}
     await cargar($("categoria").value);
+  } else {
+    await Promise.all([...new Set([...MARCAS[v]].map(categoriaDe))].map(cargar));
   }
+  const enPresupuesto = v === "presupuesto";
+  $("presupuesto").hidden = !enPresupuesto;
+  $("grilla").hidden = enPresupuesto;
+  if (enPresupuesto) return pintarPresupuesto();
   const provs = proveedoresDe();
   const regiones = [...new Set((provs || []).map((p) => p.region).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
   $("region").innerHTML = `<option value="">Todas las zonas</option>` + regiones.map((r) => `<option>${esc(r)}</option>`).join("");
@@ -248,32 +315,27 @@ async function mostrar() {
   filtrar();
 }
 
+function vaciar(mensaje) {
+  lista = [];
+  $("grilla").innerHTML = "";
+  $("vacio").hidden = false;
+  $("vacio").textContent = mensaje;
+  $("mas").hidden = true;
+  $("cuenta").textContent = "";
+}
+
 function filtrar() {
   const provs = proveedoresDe();
-  if (enFavoritos() && !favoritos.size) {
-    lista = [];
-    $("grilla").innerHTML = "";
-    $("vacio").hidden = false;
-    $("vacio").textContent = "Aún no hay favoritos. Toca ♡ en un proveedor para guardarlo aquí.";
-    $("mas").hidden = true;
-    $("cuenta").textContent = "";
-    return;
-  }
-  if (!provs) {
-    lista = [];
-    $("grilla").innerHTML = "";
-    $("vacio").hidden = false;
-    $("vacio").textContent = "Esta categoría aún no está descargada.";
-    $("mas").hidden = true;
-    $("cuenta").textContent = "";
-    return;
-  }
+  if (vista() === "favoritos" && !MARCAS.favoritos.size) return vaciar("Aún no hay favoritos. Toca ♡ (o toca dos veces una ficha) para guardarlo aquí.");
+  if (!provs) return vaciar("Esta categoría aún no está descargada.");
   const q = $("buscar").value.trim().toLowerCase();
   const region = $("region").value;
   const notaMin = Number($("nota").value);
   const orden = $("orden").value;
   const fotos = $("fotos").value;
+  const conDescartados = vista() !== "catalogo" || $("descartados").checked;
   lista = provs.filter((p) =>
+    (conDescartados || !MARCAS.descartados.has(p.url)) &&
     (!region || p.region === region) &&
     (!fotos || (fotos === "con") === p.fotos.length > 0) &&
     (Number(p.nota) || 0) >= notaMin &&
@@ -295,7 +357,9 @@ function filtrar() {
 
 function tarjeta(p, i) {
   const nota = p.nota ? `<span class="estrellas">${estrellas(p.nota)}</span> ${esc(p.nota)} · ${p.n_opiniones} opiniones` : "Sin opiniones";
-  return `<div class="card-wrap"><button class="card" data-i="${i}">
+  const descartado = MARCAS.descartados.has(p.url);
+  const chip = MARCAS.presupuesto.has(p.url) ? "＄ Presupuesto" : descartado ? "Descartado" : "";
+  return `<div class="card-wrap${descartado ? " descartado" : ""}" data-url="${esc(p.url)}"><button class="card" data-i="${i}">
     ${p.fotos.length ? imgFoto(p.r2 ? urlR2(p, "portada.webp") : urlFoto(p.fotos[0][0]), "foto") : sinFotos("Sin fotos en el archivo")}
     <div class="cuerpo">
       <h3>${esc(p.nombre)}</h3>
@@ -303,7 +367,16 @@ function tarjeta(p, i) {
       <div class="meta">${esc([p.comuna, p.region].filter(Boolean).join(", "))}</div>
       ${p.precio ? `<div class="precio">${esc(p.precio.split("(")[0])}</div>` : ""}
     </div>
-  </button>${corazon(p)}</div>`;
+  </button>${chip ? `<span class="chip">${chip}</span>` : ""}${corazon(p)}</div>`;
+}
+
+function actualizarTarjeta(url) {
+  const wrap = [...document.querySelectorAll(".card-wrap")].find((w) => w.dataset.url === url);
+  if (!wrap) return;
+  const i = Number(wrap.querySelector(".card").dataset.i);
+  wrap.outerHTML = tarjeta(lista[i], i);
+  const nuevo = [...document.querySelectorAll(".card-wrap")].find((w) => w.dataset.url === url);
+  nuevo.hidden = vista() === "catalogo" && !$("descartados").checked && MARCAS.descartados.has(url);
 }
 
 function mostrarMas() {
@@ -313,33 +386,218 @@ function mostrarMas() {
   $("mas").hidden = mostrados >= lista.length;
 }
 
-function abrir(p) {
-  const mapa = p.geo && p.geo[0] ? `<a target="_blank" rel="noopener" href="https://www.google.com/maps?q=${p.geo[0]},${p.geo[1]}">Ver en el mapa</a>` : "";
+function numeroWhatsapp(telefono) {
+  const movil = telefono.replace(/\D/g, "").match(/^(?:56)?(9\d{8})$/);
+  return movil && "56" + movil[1];
+}
+
+function enlaceMapa(p) {
+  return p.geo && p.geo[0] ? `<a target="_blank" rel="noopener" href="https://www.google.com/maps?q=${p.geo[0]},${p.geo[1]}">Ver en el mapa</a>` : "";
+}
+
+function enlaceFicha(p) {
+  return `<a target="_blank" rel="noopener" href="${ARCHIVO}${p.ts}/${esc(p.url)}">Ver ficha original</a>`;
+}
+
+let listaPresupuesto = [];
+
+function pintarPresupuesto() {
+  const provs = proveedoresDe();
+  vaciar("Aún no hay proveedores en tu presupuesto. Desliza una ficha a la derecha (o toca ＄) para agregarla.");
+  $("vacio").hidden = provs.length > 0;
+  listaPresupuesto = Object.entries(GRUPOS).flatMap(([, cats]) => provs.filter((p) => categoriaDe(p.url) in cats));
+  $("presupuesto").innerHTML = Object.entries(GRUPOS).map(([grupo, cats]) => {
+    const items = listaPresupuesto.filter((p) => categoriaDe(p.url) in cats);
+    if (!items.length) return "";
+    return `<h2>${grupo}</h2>` + items.map((p) => {
+      const wa = p.telefono && numeroWhatsapp(p.telefono);
+      return `<article class="item-p">
+        <div>
+          <h3><button class="ver" data-i="${listaPresupuesto.indexOf(p)}">${esc(p.nombre)}</button></h3>
+          <div class="meta">${CATEGORIAS[categoriaDe(p.url)]} · ${esc([p.direccion, p.comuna, p.region].filter(Boolean).join(", "))}</div>
+          ${p.precio ? `<div class="precio">${esc(p.precio.split("(")[0])}</div>` : ""}
+        </div>
+        <div class="contacto">
+          ${p.telefono ? `<a href="tel:${esc(p.telefono)}">Llamar ${esc(p.telefono)}</a>` : ""}
+          ${wa ? `<a target="_blank" rel="noopener" href="https://wa.me/${wa}">WhatsApp</a>` : ""}
+          ${enlaceMapa(p)}${enlaceFicha(p)}
+        </div>
+        <button class="quitar" data-url="${esc(p.url)}">Quitar</button>
+      </article>`;
+    }).join("");
+  }).join("");
+}
+
+let cola = [];
+let posicion = 0;
+let revisando = false;
+let deshacerAccion = null;
+let temporizadorAviso = 0;
+
+function abrirEn(nuevaCola, i, modoRevisar) {
+  cola = nuevaCola;
+  posicion = i;
+  revisando = modoRevisar;
+  pintarFicha();
+  if (!$("detalle").open) $("detalle").showModal();
+}
+
+function pintarFicha() {
+  const p = cola[posicion];
   $("detalle").innerHTML = `
-    <div class="det-head">
-      <div style="flex:1">
-        <h2>${esc(p.nombre)}</h2>
-        <div class="meta">${p.nota ? `<span class="estrellas">${estrellas(p.nota)}</span> ${esc(p.nota)} · ${p.n_opiniones} opiniones · ` : ""}${esc([p.direccion, p.comuna, p.region].filter(Boolean).join(", "))}</div>
-        ${p.precio ? `<div class="precio">${esc(p.precio)}</div>` : ""}
+    <div class="ficha" id="ficha">
+      <div class="sello sello-si" id="sello-si">Presupuesto</div>
+      <div class="sello sello-no" id="sello-no">Descartar</div>
+      <div class="det-head">
+        <div style="flex:1">
+          ${revisando ? `<div class="posicion">Revisando ${posicion + 1} de ${cola.length}</div>` : ""}
+          <h2>${esc(p.nombre)}</h2>
+          <div class="meta">${p.nota ? `<span class="estrellas">${estrellas(p.nota)}</span> ${esc(p.nota)} · ${p.n_opiniones} opiniones · ` : ""}${esc([p.direccion, p.comuna, p.region].filter(Boolean).join(", "))}</div>
+          ${p.precio ? `<div class="precio">${esc(p.precio)}</div>` : ""}
+        </div>
+        <button class="cerrar" aria-label="Cerrar">×</button>
       </div>
-      ${corazon(p)}
-      <button class="cerrar" aria-label="Cerrar">×</button>
+      ${p.fotos.length ? `<div class="galeria">${p.fotos.map(([, grande], n) => imgFoto(p.r2 ? urlR2(p, `${n + 1}.webp`) : urlFoto(grande), "")).join("")}</div>` : ""}
+      <section class="bloque">
+        <div class="links">${enlaceMapa(p)}${enlaceFicha(p)}</div>
+        ${p.descripcion ? `<h4>Descripción</h4><div class="descripcion">${esc(p.descripcion)}</div>` : ""}
+        ${p.faqs.length ? `<h4>Preguntas frecuentes</h4><dl class="faq">${p.faqs.map((f) => `<dt>${esc(f.p)}</dt><dd>${f.r.map(esc).join(" · ")}</dd>`).join("")}</dl>` : ""}
+        ${p.opiniones.length ? `<h4>Opiniones (${p.opiniones.length} de ${p.n_opiniones})</h4>${p.opiniones.map((o) => `
+          <div class="opinion">
+            <div><span class="quien">${esc(o.autor)}</span> <span class="meta">· ${esc(o.fecha)}</span></div>
+            <div class="estrellas">${estrellas(o.nota)}</div>
+            <div>${esc(o.texto)}</div>
+          </div>`).join("")}` : ""}
+      </section>
     </div>
-    ${p.fotos.length ? `<div class="galeria">${p.fotos.map(([, grande], n) => imgFoto(p.r2 ? urlR2(p, `${n + 1}.webp`) : urlFoto(grande), "")).join("")}</div>` : ""}
-    <section class="bloque">
-      <div class="links">${mapa}<a target="_blank" rel="noopener" href="https://web.archive.org/web/${p.ts}/${esc(p.url)}">Ver ficha original en el archivo</a></div>
-      ${p.descripcion ? `<h4>Descripción</h4><div class="descripcion">${esc(p.descripcion)}</div>` : ""}
-      ${p.faqs.length ? `<h4>Preguntas frecuentes</h4><dl class="faq">${p.faqs.map((f) => `<dt>${esc(f.p)}</dt><dd>${f.r.map(esc).join(" · ")}</dd>`).join("")}</dl>` : ""}
-      ${p.opiniones.length ? `<h4>Opiniones (${p.opiniones.length} de ${p.n_opiniones})</h4>${p.opiniones.map((o) => `
-        <div class="opinion">
-          <div><span class="quien">${esc(o.autor)}</span> <span class="meta">· ${esc(o.fecha)}</span></div>
-          <div class="estrellas">${estrellas(o.nota)}</div>
-          <div>${esc(o.texto)}</div>
-        </div>`).join("")}` : ""}
-    </section>`;
-  $("detalle").showModal();
+    <div class="acciones">
+      <button data-accion="descartar" aria-label="Descartar">✕</button>
+      <button data-accion="favorito" aria-label="Favorito">${MARCAS.favoritos.has(p.url) ? "♥" : "♡"}</button>
+      <button data-accion="presupuesto" aria-label="Agregar a mi presupuesto">＄</button>
+    </div>
+    <div class="pop" id="pop">♥</div>`;
   $("detalle").scrollTop = 0;
 }
+
+function avisar(texto, alDeshacer) {
+  deshacerAccion = alDeshacer;
+  $("aviso-texto").textContent = texto;
+  $("deshacer").hidden = !alDeshacer;
+  const aviso = $("aviso");
+  if (aviso.matches(":popover-open")) aviso.hidePopover();
+  aviso.showPopover?.();
+  clearTimeout(temporizadorAviso);
+  temporizadorAviso = setTimeout(() => aviso.matches(":popover-open") && aviso.hidePopover(), SEGUNDOS_DESHACER * 1000);
+}
+
+function poner(url, destino) {
+  for (const clave of ["presupuesto", "descartados"]) {
+    if (clave === destino) MARCAS[clave].add(url); else MARCAS[clave].delete(url);
+    guardarMarca(clave);
+  }
+  pintarRutas();
+  actualizarTarjeta(url);
+  if (vista() === "presupuesto") pintarPresupuesto();
+}
+
+function marcar(url, destino) {
+  const antes = ["presupuesto", "descartados"].find((clave) => MARCAS[clave].has(url));
+  poner(url, destino);
+  return () => poner(url, antes);
+}
+
+function decidir(accion) {
+  const p = cola[posicion];
+  if (accion === "favorito") {
+    alternarFavorito(p.url);
+    const pop = $("pop");
+    pop.textContent = MARCAS.favoritos.has(p.url) ? "♥" : "♡";
+    pop.classList.remove("on");
+    void pop.offsetWidth;
+    pop.classList.add("on");
+    return;
+  }
+  const desde = posicion;
+  const deshacer = marcar(p.url, accion === "presupuesto" ? "presupuesto" : "descartados");
+  avisar(accion === "presupuesto" ? "Agregado a tu presupuesto" : "Descartado", () => {
+    deshacer();
+    abrirEn(cola, desde, revisando);
+  });
+  volar(accion === "presupuesto" ? 1 : -1);
+}
+
+function volar(direccion) {
+  const ficha = $("ficha");
+  ficha.style.transformOrigin = `50% ${$("detalle").scrollTop + $("detalle").clientHeight / 2}px`;
+  ficha.classList.add("volando");
+  ficha.style.transform = `translateX(${direccion * 120}vw) rotate(${direccion * 18}deg)`;
+  setTimeout(siguiente, 250);
+}
+
+function siguiente() {
+  if (posicion + 1 < cola.length) {
+    posicion += 1;
+    pintarFicha();
+    return;
+  }
+  $("detalle").close();
+  if (revisando) avisar("Revisaste todos los proveedores de estos filtros.", deshacerAccion);
+}
+
+let toque = null;
+let ultimoToque = 0;
+
+function moverFicha(dx) {
+  const umbral = $("ficha").offsetWidth / 3;
+  $("ficha").style.transform = `translateX(${dx}px) rotate(${dx / 25}deg)`;
+  $("sello-si").style.opacity = Math.min(1, Math.max(0, dx) / umbral);
+  $("sello-no").style.opacity = Math.min(1, Math.max(0, -dx) / umbral);
+}
+
+$("detalle").addEventListener("pointerdown", (e) => {
+  if (!e.target.closest(".ficha") || e.target.closest(".galeria, button, a")) return;
+  toque = { id: e.pointerId, x: e.clientX, y: e.clientY, arrastrando: false };
+});
+$("detalle").addEventListener("pointermove", (e) => {
+  if (!toque || e.pointerId !== toque.id || (e.pointerType === "mouse" && !e.buttons)) return;
+  const dx = e.clientX - toque.x;
+  const dy = e.clientY - toque.y;
+  if (!toque.arrastrando) {
+    if (Math.abs(dy) > INICIO_ARRASTRE_PX && Math.abs(dy) > Math.abs(dx)) { toque = null; return; }
+    if (Math.abs(dx) < INICIO_ARRASTRE_PX) return;
+    toque.arrastrando = true;
+    $("ficha").classList.remove("volviendo");
+    $("ficha").style.transformOrigin = `50% ${$("detalle").scrollTop + $("detalle").clientHeight / 2}px`;
+  }
+  moverFicha(dx);
+});
+$("detalle").addEventListener("pointerup", (e) => {
+  if (!toque || e.pointerId !== toque.id) return;
+  const dx = e.clientX - toque.x;
+  const arrastrando = toque.arrastrando;
+  toque = null;
+  if (arrastrando) {
+    if (Math.abs(dx) > $("ficha").offsetWidth / 3) return decidir(dx > 0 ? "presupuesto" : "descartar");
+    $("ficha").classList.add("volviendo");
+    return moverFicha(0);
+  }
+  const ahora = Date.now();
+  if (ahora - ultimoToque < DOBLE_TOQUE_MS) {
+    ultimoToque = 0;
+    return decidir("favorito");
+  }
+  ultimoToque = ahora;
+});
+$("detalle").addEventListener("pointercancel", () => {
+  if (toque?.arrastrando) { $("ficha").classList.add("volviendo"); moverFicha(0); }
+  toque = null;
+});
+
+document.addEventListener("keydown", (e) => {
+  if (!$("detalle").open || e.target.matches?.("input, select, textarea")) return;
+  const accion = { ArrowLeft: "descartar", ArrowRight: "presupuesto", f: "favorito", F: "favorito" }[e.key];
+  if (accion) { e.preventDefault(); decidir(accion); }
+});
 
 document.addEventListener("click", (e) => {
   const boton = e.target.closest(".corazon");
@@ -347,16 +605,34 @@ document.addEventListener("click", (e) => {
 });
 $("grilla").addEventListener("click", (e) => {
   const card = e.target.closest(".card");
-  if (card) abrir(lista[Number(card.dataset.i)]);
+  if (card) abrirEn(lista, Number(card.dataset.i), false);
+});
+$("presupuesto").addEventListener("click", (e) => {
+  const ver = e.target.closest(".ver");
+  if (ver) return abrirEn(listaPresupuesto, Number(ver.dataset.i), false);
+  const quitar = e.target.closest(".quitar");
+  if (quitar) avisar("Quitado de tu presupuesto", marcar(quitar.dataset.url, null));
 });
 $("detalle").addEventListener("click", (e) => {
-  if (e.target === $("detalle") || e.target.closest(".cerrar")) $("detalle").close();
+  if (e.target === $("detalle") || e.target.closest(".cerrar")) return $("detalle").close();
+  const accion = e.target.closest("[data-accion]");
+  if (accion) decidir(accion.dataset.accion);
+});
+$("deshacer").addEventListener("click", () => {
+  $("aviso").hidePopover();
+  deshacerAccion?.();
+  deshacerAccion = null;
+});
+$("revisar").addEventListener("click", () => {
+  const pendientes = lista.filter(indeciso);
+  if (!pendientes.length) return avisar("No quedan proveedores sin revisar con estos filtros.", null);
+  abrirEn(pendientes, 0, true);
 });
 $("mas").addEventListener("click", mostrarMas);
 $("categoria").addEventListener("change", mostrar);
 window.addEventListener("hashchange", mostrar);
 FILTROS.forEach((id) => $(id).addEventListener("input", () => {
-  filtrosGuardados = Object.fromEntries(FILTROS.map((f) => [f, $(f).value]));
+  filtrosGuardados = Object.fromEntries(FILTROS.map((f) => [f, $(f).type === "checkbox" ? $(f).checked : $(f).value]));
   try { localStorage.setItem("filtros", JSON.stringify(filtrosGuardados)); } catch {}
   filtrar();
 }));
@@ -364,7 +640,9 @@ FILTROS.forEach((id) => $(id).addEventListener("input", () => {
 let inicial = CATEGORIA_INICIAL;
 try { inicial = localStorage.getItem("categoria") || inicial; } catch {}
 try { filtrosGuardados = JSON.parse(localStorage.getItem("filtros")) || {}; } catch {}
-["buscar", "nota", "fotos", "orden"].forEach((id) => { if (filtrosGuardados[id] != null) $(id).value = filtrosGuardados[id]; });
+FILTROS.filter((id) => id !== "region" && filtrosGuardados[id] != null).forEach((id) => {
+  if ($(id).type === "checkbox") $(id).checked = filtrosGuardados[id]; else $(id).value = filtrosGuardados[id];
+});
 cargarScript(`data/estado.js?v=${Date.now()}`).then(() => {
   pintarEstado();
   $("categoria").innerHTML = Object.entries(GRUPOS)

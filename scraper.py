@@ -224,6 +224,7 @@ def extraer(html, url, ts):
         "nota": ar.get("ratingValue"),
         "n_opiniones": ar.get("reviewCount") or 0,
         "precio": precio if precio and "$" in precio else None,
+        "telefono": telefono.group(1).replace(" ", "") if (telefono := re.search(r'href="tel:([+\d ]{8,})"', html)) else None,
         "comuna": adr.get("addressLocality"),
         "region": adr.get("addressRegion"),
         "direccion": adr.get("streetAddress"),
@@ -263,8 +264,8 @@ def armar(cat):
             continue
         url = htmllib.unescape(canonica.group(1))
         datos = extraer(html, url, ts_por_id.get(archivo.name.split(".")[0], DESDE))
-        if (RAIZ / "fotos" / cat / archivo.name.split(".")[0] / "portada.webp").exists():
-            datos["r2"] = True  # fotos.py + subir.py ya las dejaron en R2
+        if (RAIZ / "fotos" / cat / ".subido").exists() and (RAIZ / "fotos" / cat / archivo.name.split(".")[0] / "portada.webp").exists():
+            datos["r2"] = True
         proveedores.append(datos)
     DATA.mkdir(exist_ok=True)
     cuerpo = json.dumps(proveedores, ensure_ascii=False, separators=(",", ":"))
