@@ -22,7 +22,8 @@
   header { padding: 32px 16px 16px; max-width: 1200px; margin: 0 auto; }
   h1 { font: 600 32px/1.2 Georgia, "Times New Roman", serif; margin: 0 0 4px; }
   .sub { color: var(--muted); margin: 0; }
-  .estado { margin-top: 12px; font-size: 14px; color: var(--muted); }
+  .pie { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; border-top: 1px solid var(--line); }
+  .estado { font-size: 14px; color: var(--muted); }
   .estado summary { cursor: pointer; }
   .estado ul { columns: 220px; margin: 8px 0 0; padding: 0; list-style: none; }
   .estado li { padding: 2px 0; break-inside: avoid; }
@@ -75,29 +76,35 @@
   .links a { color: var(--accent); margin-right: 16px; }
   .ruta { color: var(--accent); font-weight: 600; text-decoration: none; padding: 8px 4px; white-space: nowrap; }
   .opciones { display: contents; }
+  .campo { display: contents; }
+  .campo span { display: none; font-size: 13px; font-weight: 600; color: var(--muted); }
   .filtro-btn { display: none; position: relative; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
   .insignia { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
   @media (max-width: 700px) {
     .filtro-btn { display: inline-flex; }
     .opciones { display: none; flex-basis: 100%; flex-direction: column; align-items: stretch; gap: 8px; padding-top: 4px; }
     .opciones.abierto { display: flex; }
+    .opciones input[type=search] { flex: none; }
+    .campo { display: flex; flex-direction: column; gap: 4px; }
+    .campo span { display: block; }
     #categoria { flex: 1 1 140px; min-width: 0; }
     .opciones:not(.abierto) ~ .cuenta { display: none; }
   }
-  .pista { position: fixed; inset: auto 16px 96px 16px; z-index: 5; margin: 0 auto; max-width: 360px; padding: 12px 16px; border-radius: var(--radius); background: var(--ink); color: var(--bg); font-size: 14px; text-align: center; pointer-events: none; }
+  .pista { position: fixed; inset: 40% 24px auto 24px; z-index: 5; margin: 0 auto; max-width: 360px; padding: 12px 16px; border-radius: var(--radius); background: var(--ink); color: var(--bg); font-size: 14px; text-align: center; pointer-events: none; }
   .filtros-in.solo-rutas > :not(.ruta) { display: none; }
   .chip { position: absolute; top: 10px; left: 10px; pointer-events: none; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,.92); color: var(--accent); }
   .card-wrap.descartado .card { opacity: .5; }
   dialog { overflow: auto; overscroll-behavior: contain; }
   .ficha { position: relative; background: var(--surface); touch-action: pan-y; user-select: none; -webkit-user-select: none; }
   .ficha.volando { transition: transform .25s ease-in; }
-  .ficha.volviendo { transition: transform .2s ease-out; }
+  .ficha.volviendo { transition: transform .2s ease-out, opacity .2s ease-out; }
   .sello { position: absolute; top: 28px; z-index: 3; padding: 4px 14px; border: 3px solid; border-radius: 8px; font-weight: 800; font-size: 22px; text-transform: uppercase; letter-spacing: .06em; opacity: 0; pointer-events: none; background: var(--surface); }
   .sello-no { right: 24px; color: var(--muted); transform: rotate(12deg); }
   .sello-si { left: 24px; color: var(--accent); transform: rotate(-12deg); }
-  .mas-info summary { display: inline-block; margin-top: 16px; padding: 8px 18px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent); font-weight: 600; cursor: pointer; list-style: none; }
-  .mas-info summary::-webkit-details-marker { display: none; }
-  .mas-info[open] summary { display: none; }
+  .ver-mas { display: block; margin-top: 12px; padding: 8px 18px; border: 1px solid var(--accent); border-radius: 999px; background: none; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
+  .bloque:not(.abierto) .descripcion { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; -webkit-mask-image: linear-gradient(#000 55%, transparent); mask-image: linear-gradient(#000 55%, transparent); }
+  .descripcion { margin-top: 12px; }
+  .bloque:not(.abierto) .extra { display: none; }
   .ficha.desde-abajo { animation: entrar-abajo .22s ease-out; }
   .ficha.desde-arriba { animation: entrar-arriba .22s ease-out; }
   @keyframes entrar-abajo { from { transform: translateY(40px); opacity: 0; } }
@@ -124,7 +131,8 @@
   .contacto a { color: var(--accent); }
   .quitar { font: inherit; font-size: 14px; color: var(--muted); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
   @media (max-width: 600px) {
-    dialog { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; }
+    dialog { width: calc(100vw - 24px); max-width: calc(100vw - 24px); max-height: calc(100dvh - 48px); border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,.35); }
+    dialog::backdrop { background: rgba(20,15,10,.7); }
     .galeria img { height: 220px; }
   }
 </style>
@@ -133,7 +141,6 @@
 <header>
   <h1>Proveedores de matrimonio</h1>
   <p class="sub">Fichas de matrimonios.cl rescatadas de Wayback Machine (capturas 2025). Las fotos cargan desde el archivo, así que necesitan internet.</p>
-  <details class="estado" id="estado"></details>
 </header>
 <div class="filtros"><div class="filtros-in" id="barra">
   <a class="ruta" id="ir-favoritos"></a>
@@ -145,19 +152,29 @@
   </button>
   <div class="opciones" id="opciones">
   <input id="buscar" type="search" placeholder="Buscar por nombre, comuna o descripción…">
+  <label class="campo"><span>Zona</span>
   <select id="region"><option value="">Todas las zonas</option></select>
+  </label>
+  <label class="campo"><span>Nota</span>
   <select id="nota">
     <option value="0">Cualquier nota</option><option value="4.5">4.5+</option><option value="4.8">4.8+</option><option value="5">5.0</option>
   </select>
+  </label>
+  <label class="campo"><span>Fotos</span>
   <select id="fotos">
     <option value="">Con y sin fotos</option><option value="con">Con fotos</option><option value="sin">Sin fotos</option>
   </select>
+  </label>
+  <label class="campo"><span>Orden</span>
   <select id="orden">
     <option value="opiniones">Más opiniones</option><option value="nota">Mejor nota</option><option value="nombre">Nombre A–Z</option>
   </select>
+  </label>
+  <label class="campo"><span>Mostrar</span>
   <select id="decision">
     <option value="">Ocultar descartados</option><option value="pendientes">Solo sin decidir</option><option value="todos">Todos, con descartados</option>
   </select>
+  </label>
   </div>
   <span class="cuenta" id="cuenta"></span>
 </div></div>
@@ -167,6 +184,7 @@
   <p class="vacio" id="vacio" hidden></p>
   <div id="fin"></div>
 </main>
+<footer class="pie"><details class="estado" id="estado"></details></footer>
 <dialog id="detalle"></dialog>
 <div class="aviso" id="aviso" popover="manual"><span id="aviso-texto"></span><button id="deshacer">Deshacer</button></div>
 <script>
@@ -327,7 +345,7 @@ async function mostrar() {
   pintarRutas();
   $("barra").classList.toggle("solo-rutas", v === "presupuesto");
   $("categoria").hidden = v !== "catalogo";
-  $("decision").hidden = v !== "catalogo";
+  $("decision").parentElement.hidden = v !== "catalogo";
   if (v === "catalogo") {
     try { localStorage.setItem("categoria", $("categoria").value); } catch {}
     await cargar($("categoria").value);
@@ -498,6 +516,7 @@ function abrirEn(nuevaCola, i) {
 
 function pintarFicha() {
   const p = cola[posicion];
+  const extra = [p.descripcion.length > 200 && "descripción", p.faqs.length && `${p.faqs.length} preguntas`, p.opiniones.length && `${p.opiniones.length} opiniones`].filter(Boolean).join(", ");
   $("detalle").innerHTML = `
     <div class="ficha" id="ficha">
       <div class="sello sello-si" id="sello-si">Presupuesto</div>
@@ -514,16 +533,17 @@ function pintarFicha() {
       ${p.fotos.length ? `<div class="galeria">${p.fotos.map(([, grande], n) => imgFoto(p.r2 ? urlR2(p, `${n + 1}.webp`) : urlFoto(grande), "")).join("")}</div>` : ""}
       <section class="bloque">
         <div class="links">${enlaceMapa(p)}${enlaceFicha(p)}</div>
-        ${p.descripcion || p.faqs.length || p.opiniones.length ? `<details class="mas-info"><summary>Ver más</summary>` : ""}
-        ${p.descripcion ? `<h4>Descripción</h4><div class="descripcion">${esc(p.descripcion)}</div>` : ""}
-        ${p.faqs.length ? `<h4>Preguntas frecuentes</h4><dl class="faq">${p.faqs.map((f) => `<dt>${esc(f.p)}</dt><dd>${f.r.map(esc).join(" · ")}</dd>`).join("")}</dl>` : ""}
-        ${p.opiniones.length ? `<h4>Opiniones (${p.opiniones.length} de ${p.n_opiniones})</h4>${p.opiniones.map((o) => `
-          <div class="opinion">
-            <div><span class="quien">${esc(o.autor)}</span> <span class="meta">· ${esc(o.fecha)}</span></div>
-            <div class="estrellas">${estrellas(o.nota)}</div>
-            <div>${esc(o.texto)}</div>
-          </div>`).join("")}` : ""}
-        ${p.descripcion || p.faqs.length || p.opiniones.length ? "</details>" : ""}
+        ${p.descripcion ? `<div class="descripcion">${esc(p.descripcion)}</div>` : ""}
+        <div class="extra">
+          ${p.faqs.length ? `<h4>Preguntas frecuentes</h4><dl class="faq">${p.faqs.map((f) => `<dt>${esc(f.p)}</dt><dd>${f.r.map(esc).join(" · ")}</dd>`).join("")}</dl>` : ""}
+          ${p.opiniones.length ? `<h4>Opiniones (${p.opiniones.length} de ${p.n_opiniones})</h4>${p.opiniones.map((o) => `
+            <div class="opinion">
+              <div><span class="quien">${esc(o.autor)}</span> <span class="meta">· ${esc(o.fecha)}</span></div>
+              <div class="estrellas">${estrellas(o.nota)}</div>
+              <div>${esc(o.texto)}</div>
+            </div>`).join("")}` : ""}
+        </div>
+        ${extra ? `<button class="ver-mas">Ver más · ${extra}</button>` : ""}
       </section>
     </div>
     <div class="acciones">
@@ -669,25 +689,39 @@ $("detalle").addEventListener("pointercancel", () => {
   toque = null;
 });
 
-const NAVEGAR_PX = 80;
+const NAVEGAR_PX = 50;
 let deslizar = null;
 
 $("detalle").addEventListener("touchstart", (e) => {
-  const d = $("detalle");
-  deslizar = e.touches.length === 1 && !e.target.closest(".galeria") && {
-    x: e.touches[0].clientX,
-    y: e.touches[0].clientY,
-    arriba: d.scrollTop <= 0,
-    abajo: d.scrollTop + d.clientHeight >= d.scrollHeight - 2,
-  };
+  deslizar = e.touches.length === 1 && { x: e.touches[0].clientX, y: e.touches[0].clientY, scroll: $("detalle").scrollTop };
+}, { passive: true });
+function gestoVertical(toqueActual) {
+  const dx = toqueActual.clientX - deslizar.x;
+  const dy = toqueActual.clientY - deslizar.y;
+  const leyendo = Math.abs($("detalle").scrollTop - deslizar.scroll) > 2;
+  return leyendo || Math.abs(dy) < Math.abs(dx) * 1.5 ? 0 : dy;
+}
+
+function soltarFicha() {
+  const ficha = $("ficha");
+  ficha.classList.add("volviendo");
+  ficha.style.transform = ficha.style.opacity = "";
+}
+
+$("detalle").addEventListener("touchmove", (e) => {
+  if (!deslizar || toque?.arrastrando) return;
+  const dy = gestoVertical(e.touches[0]);
+  if (!dy) return soltarFicha();
+  const ficha = $("ficha");
+  ficha.classList.remove("volviendo");
+  ficha.style.transform = `translateY(${dy * 0.4}px)`;
+  ficha.style.opacity = 1 - Math.min(Math.abs(dy) / 300, 0.5);
 }, { passive: true });
 $("detalle").addEventListener("touchend", (e) => {
-  if (!deslizar) return;
-  const dx = e.changedTouches[0].clientX - deslizar.x;
-  const dy = e.changedTouches[0].clientY - deslizar.y;
-  if (Math.abs(dy) < NAVEGAR_PX || Math.abs(dy) < Math.abs(dx) * 2) return;
-  if (dy < 0 && deslizar.abajo) navegar(1);
-  else if (dy > 0 && deslizar.arriba) navegar(-1);
+  if (!deslizar || toque?.arrastrando) return;
+  const dy = gestoVertical(e.changedTouches[0]);
+  if (Math.abs(dy) < NAVEGAR_PX) return soltarFicha();
+  navegar(dy < 0 ? 1 : -1);
 });
 
 document.addEventListener("keydown", (e) => {
@@ -712,6 +746,11 @@ $("presupuesto").addEventListener("click", (e) => {
 });
 $("detalle").addEventListener("click", (e) => {
   if (e.target === $("detalle") || e.target.closest(".cerrar")) return $("detalle").close();
+  const verMas = e.target.closest(".ver-mas");
+  if (verMas) {
+    verMas.closest(".bloque").classList.add("abierto");
+    return verMas.remove();
+  }
   const accion = e.target.closest("[data-accion]");
   if (accion) decidir(accion.dataset.accion);
 });
