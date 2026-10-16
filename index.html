@@ -10,11 +10,13 @@
   :root {
     --bg: #fdf6f7; --surface: #ffffff; --ink: #2a2228; --muted: #6e5f68; --line: #f0dfe4;
     --accent: #b03a63; --accent-soft: #f9e4ea; --star: #a87a0a; --radius: 12px;
+    --descartar: #6b5a70; --sobre-color: #fff;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #1d1720; --surface: #28202b; --ink: #f6eef2; --muted: #b9a8b2; --line: #3d3040;
       --accent: #f08bab; --accent-soft: #3d2431; --star: #f2c230;
+      --descartar: #cfc3d2; --sobre-color: #28202b;
     }
   }
   * { box-sizing: border-box; }
@@ -98,9 +100,15 @@
   .ficha { position: relative; background: var(--surface); touch-action: pan-y; user-select: none; -webkit-user-select: none; }
   .ficha.volando { transition: transform .25s ease-in; }
   .ficha.volviendo { transition: transform .2s ease-out, opacity .2s ease-out; }
-  .sello { position: absolute; top: 28px; z-index: 3; padding: 4px 14px; border: 3px solid; border-radius: 8px; font-weight: 800; font-size: 22px; text-transform: uppercase; letter-spacing: .06em; opacity: 0; pointer-events: none; background: var(--surface); }
-  .sello-no { right: 24px; color: var(--muted); transform: rotate(12deg); }
-  .sello-si { left: 24px; color: var(--accent); transform: rotate(-12deg); }
+  .indicador { position: fixed; top: 50%; z-index: 6; display: flex; flex-direction: column; align-items: center; gap: 8px; transform: translateY(-50%); opacity: 0; pointer-events: none; --c: var(--accent); }
+  .indicador-si { left: 16px; }
+  .indicador-no { right: 16px; --c: var(--descartar); }
+  .indicador .icono { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; border: 2px solid var(--c); color: var(--c); background: var(--surface); transform: scale(var(--escala, .7)); }
+  .indicador.listo .icono { background: var(--c); color: var(--sobre-color); animation: pop-indicador .16s ease-out; }
+  .indicador .etiqueta { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: var(--c); color: var(--sobre-color); opacity: 0; }
+  .indicador.listo .etiqueta { opacity: 1; transition: opacity .12s; }
+  @keyframes pop-indicador { 50% { transform: scale(1.08); } }
+  @media (prefers-reduced-motion: reduce) { .indicador .icono { transform: none; } .indicador.listo .icono { animation: none; } }
   .ver-mas { display: block; margin-top: 12px; padding: 8px 18px; border: 1px solid var(--accent); border-radius: 999px; background: none; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
   .bloque:not(.abierto) .descripcion { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; -webkit-mask-image: linear-gradient(#000 55%, transparent); mask-image: linear-gradient(#000 55%, transparent); }
   .descripcion { margin-top: 12px; }
@@ -519,8 +527,6 @@ function pintarFicha() {
   const extra = [p.descripcion.length > 200 && "descripción", p.faqs.length && `${p.faqs.length} preguntas`, p.opiniones.length && `${p.opiniones.length} opiniones`].filter(Boolean).join(", ");
   $("detalle").innerHTML = `
     <div class="ficha" id="ficha">
-      <div class="sello sello-si" id="sello-si">Presupuesto</div>
-      <div class="sello sello-no" id="sello-no">Descartar</div>
       <div class="det-head">
         <div style="flex:1">
           <div class="posicion">${posicion + 1} de ${cola.length}</div>
@@ -554,6 +560,8 @@ function pintarFicha() {
       <button class="navegar" data-accion="siguiente" aria-label="Proveedor siguiente">▼</button>
     </div>
     <div class="pop" id="pop">♥</div>
+    <div class="indicador indicador-si" id="indicador-si"><span class="icono">＄</span><span class="etiqueta">Al presupuesto</span></div>
+    <div class="indicador indicador-no" id="indicador-no"><span class="icono">✕</span><span class="etiqueta">Descartar</span></div>
     ${pistaVista ? "" : `<div class="pista" id="pista">→ presupuesto · ← descartar · 2× favorito · ↕ siguiente</div>`}`;
   $("detalle").scrollTop = 0;
 }
@@ -643,11 +651,20 @@ function siguiente() {
 let toque = null;
 let ultimoToque = 0;
 
+const SIN_MOVIMIENTO = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 function moverFicha(dx) {
-  const umbral = $("ficha").offsetWidth / 3;
-  $("ficha").style.transform = `translateX(${dx}px) rotate(${dx / 25}deg)`;
-  $("sello-si").style.opacity = Math.min(1, Math.max(0, dx) / umbral);
-  $("sello-no").style.opacity = Math.min(1, Math.max(0, -dx) / umbral);
+  const progreso = Math.min(1, Math.abs(dx) / ($("ficha").offsetWidth / 3));
+  const listo = progreso >= 1;
+  $("ficha").style.transform = `translateX(${dx}px)${SIN_MOVIMIENTO ? "" : ` rotate(${dx / 25}deg)`}`;
+  $("ficha").style.boxShadow = dx ? `inset 0 0 0 2px color-mix(in srgb, ${dx > 0 ? "var(--accent)" : "var(--descartar)"} ${listo ? 100 : progreso * 50}%, transparent)` : "";
+  for (const [lado, indicador] of [[1, $("indicador-si")], [-1, $("indicador-no")]]) {
+    const activo = Math.sign(dx) === lado;
+    indicador.style.opacity = activo ? Math.min(1, Math.max(0, (progreso - 0.1) / 0.6)) : 0;
+    indicador.style.setProperty("--escala", 0.7 + 0.3 * progreso);
+    if (activo && listo && !indicador.classList.contains("listo")) navigator.vibrate?.(10);
+    indicador.classList.toggle("listo", activo && listo);
+  }
 }
 
 $("detalle").addEventListener("pointerdown", (e) => {
