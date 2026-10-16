@@ -30,6 +30,7 @@ DATA = RAIZ / "data"
 INTERVALO = 5.0  # segundos entre pedidos: el archivo bloquea sobre ~15 por minuto
 BLOQUEOS = [300, 900, 3600]  # esperas si el archivo nos rechaza; después, alerta
 PUBLICAR_CADA = 100  # proveedores nuevos entre cada subida a GitHub
+PLAZO_PEDIDO = 120  # segundos por pedido completo: el archivo a veces deja la conexión colgando
 REINTENTOS_5XX = 2  # una página rota en el archivo da 500 siempre: se reintenta poco y se salta
 MAX_NO_ENCONTRADAS = 20  # seguidas: más que eso huele a URLs mal armadas, no a huecos del archivo
 UA = {"User-Agent": "Mozilla/5.0 (archivo personal de matrimonio)"}
@@ -60,7 +61,12 @@ def get(url, binario=False):
         try:
             req = urllib.request.Request(url, headers=UA)
             with urllib.request.urlopen(req, timeout=60) as r:
-                cuerpo = r.read()
+                limite, partes = time.monotonic() + PLAZO_PEDIDO, []
+                while parte := r.read1(65536):
+                    partes.append(parte)
+                    if time.monotonic() > limite:
+                        raise TimeoutError(f"pedido de más de {PLAZO_PEDIDO} s")
+                cuerpo = b"".join(partes)
                 if cuerpo[:2] == b"\x1f\x8b":  # el archivo a veces responde comprimido sin avisar
                     cuerpo = gzip.decompress(cuerpo)
                 return cuerpo if binario else cuerpo.decode("utf-8", "replace")
