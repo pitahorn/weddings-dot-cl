@@ -73,8 +73,17 @@
   .opinion .quien { font-weight: 600; }
   .links a { color: var(--accent); margin-right: 16px; }
   .ruta { color: var(--accent); font-weight: 600; text-decoration: none; padding: 8px 4px; white-space: nowrap; }
-  .toggle { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); white-space: nowrap; }
-  .revisar { font: inherit; font-weight: 600; color: #fff; background: var(--accent); border: none; border-radius: 999px; padding: 8px 18px; cursor: pointer; }
+  .opciones { display: contents; }
+  .filtro-btn { display: none; position: relative; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .insignia { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
+  @media (max-width: 700px) {
+    .filtro-btn { display: inline-flex; }
+    .opciones { display: none; flex-basis: 100%; flex-direction: column; align-items: stretch; gap: 8px; padding-top: 4px; }
+    .opciones.abierto { display: flex; }
+    #categoria { flex: 1 1 140px; min-width: 0; }
+    .opciones:not(.abierto) ~ .cuenta { display: none; }
+  }
+  .pista { position: fixed; inset: auto 16px 96px 16px; z-index: 5; margin: 0 auto; max-width: 360px; padding: 12px 16px; border-radius: var(--radius); background: var(--ink); color: var(--bg); font-size: 14px; text-align: center; pointer-events: none; }
   .filtros-in.solo-rutas > :not(.ruta) { display: none; }
   .chip { position: absolute; top: 10px; left: 10px; pointer-events: none; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,.92); color: var(--accent); }
   .card-wrap.descartado .card { opacity: .5; }
@@ -85,9 +94,18 @@
   .sello { position: absolute; top: 28px; z-index: 3; padding: 4px 14px; border: 3px solid; border-radius: 8px; font-weight: 800; font-size: 22px; text-transform: uppercase; letter-spacing: .06em; opacity: 0; pointer-events: none; background: var(--surface); }
   .sello-no { right: 24px; color: var(--muted); transform: rotate(12deg); }
   .sello-si { left: 24px; color: var(--accent); transform: rotate(-12deg); }
+  .mas-info summary { display: inline-block; margin-top: 16px; padding: 8px 18px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent); font-weight: 600; cursor: pointer; list-style: none; }
+  .mas-info summary::-webkit-details-marker { display: none; }
+  .mas-info[open] summary { display: none; }
+  .ficha.desde-abajo { animation: entrar-abajo .22s ease-out; }
+  .ficha.desde-arriba { animation: entrar-arriba .22s ease-out; }
+  @keyframes entrar-abajo { from { transform: translateY(40px); opacity: 0; } }
+  @keyframes entrar-arriba { from { transform: translateY(-40px); opacity: 0; } }
+  @media (hover: none) { .acciones .navegar { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .ficha.desde-abajo, .ficha.desde-arriba { animation: none; } }
   .posicion { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
-  .acciones { position: sticky; bottom: 0; z-index: 4; display: flex; justify-content: center; gap: 24px; padding: 16px; background: linear-gradient(transparent, var(--surface) 35%); }
-  .acciones button { width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 24px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+  .acciones { position: sticky; bottom: 0; z-index: 4; display: flex; justify-content: center; gap: 20px; padding: 16px; background: linear-gradient(transparent, var(--surface) 35%); }
+  .acciones button { width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 24px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
   .acciones [data-accion="presupuesto"], .acciones [data-accion="favorito"] { color: var(--accent); }
   .pop { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 120px; color: var(--accent); pointer-events: none; opacity: 0; z-index: 5; }
   .pop.on { animation: pop .7s ease-out; }
@@ -120,6 +138,11 @@
   <a class="ruta" id="ir-favoritos"></a>
   <a class="ruta" id="ir-presupuesto"></a>
   <select id="categoria"></select>
+  <button class="filtro-btn" id="filtro-btn" aria-expanded="false" aria-controls="opciones" aria-label="Filtros">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg>
+    <span class="insignia" id="insignia" hidden></span>
+  </button>
+  <div class="opciones" id="opciones">
   <input id="buscar" type="search" placeholder="Buscar por nombre, comuna o descripción…">
   <select id="region"><option value="">Todas las zonas</option></select>
   <select id="nota">
@@ -131,8 +154,10 @@
   <select id="orden">
     <option value="opiniones">Más opiniones</option><option value="nota">Mejor nota</option><option value="nombre">Nombre A–Z</option>
   </select>
-  <label class="toggle"><input type="checkbox" id="descartados"> Mostrar descartados</label>
-  <button class="revisar" id="revisar">Revisar</button>
+  <select id="decision">
+    <option value="">Ocultar descartados</option><option value="pendientes">Solo sin decidir</option><option value="todos">Todos, con descartados</option>
+  </select>
+  </div>
   <span class="cuenta" id="cuenta"></span>
 </div></div>
 <main>
@@ -158,7 +183,7 @@ const POR_PAGINA = 24;
 const ARCHIVO = "https://web.archive.org/web/";
 const R2 = "https://pub-95b399b3450e4eb29238ae65c72a02e5.r2.dev";
 const CATEGORIA_INICIAL = "musica-matrimonio";
-const FILTROS = ["buscar", "region", "nota", "fotos", "orden", "descartados"];
+const FILTROS = ["buscar", "region", "nota", "fotos", "orden", "decision"];
 const RUTAS = { "#favoritos": "favoritos", "#presupuesto": "presupuesto" };
 const SEGUNDOS_DESHACER = 5;
 const DOBLE_TOQUE_MS = 300;
@@ -259,8 +284,11 @@ function vista() {
   return RUTAS[location.hash] || "catalogo";
 }
 
-function indeciso(p) {
-  return !MARCAS.presupuesto.has(p.url) && !MARCAS.descartados.has(p.url);
+function oculto(p) {
+  if (vista() !== "catalogo") return false;
+  const decision = $("decision").value;
+  if (decision === "pendientes") return MARCAS.presupuesto.has(p.url) || MARCAS.descartados.has(p.url);
+  return decision !== "todos" && MARCAS.descartados.has(p.url);
 }
 
 function proveedoresDe() {
@@ -298,7 +326,7 @@ async function mostrar() {
   pintarRutas();
   $("barra").classList.toggle("solo-rutas", v === "presupuesto");
   $("categoria").hidden = v !== "catalogo";
-  $("revisar").hidden = $("descartados").parentElement.hidden = v !== "catalogo";
+  $("decision").hidden = v !== "catalogo";
   if (v === "catalogo") {
     try { localStorage.setItem("categoria", $("categoria").value); } catch {}
     await cargar($("categoria").value);
@@ -324,7 +352,14 @@ function vaciar(mensaje) {
   $("cuenta").textContent = "";
 }
 
+function pintarInsignia() {
+  const activos = [$("buscar").value.trim(), $("region").value, $("nota").value !== "0", $("fotos").value, $("decision").value].filter(Boolean).length;
+  $("insignia").hidden = !activos;
+  $("insignia").textContent = activos;
+}
+
 function filtrar() {
+  pintarInsignia();
   const provs = proveedoresDe();
   if (vista() === "favoritos" && !MARCAS.favoritos.size) return vaciar("Aún no hay favoritos. Toca ♡ (o toca dos veces una ficha) para guardarlo aquí.");
   if (!provs) return vaciar("Esta categoría aún no está descargada.");
@@ -333,9 +368,8 @@ function filtrar() {
   const notaMin = Number($("nota").value);
   const orden = $("orden").value;
   const fotos = $("fotos").value;
-  const conDescartados = vista() !== "catalogo" || $("descartados").checked;
   lista = provs.filter((p) =>
-    (conDescartados || !MARCAS.descartados.has(p.url)) &&
+    !oculto(p) &&
     (!region || p.region === region) &&
     (!fotos || (fotos === "con") === p.fotos.length > 0) &&
     (Number(p.nota) || 0) >= notaMin &&
@@ -358,8 +392,7 @@ function tarjeta(p, i) {
   const nota = p.nota ? `<span class="estrellas">${estrellas(p.nota)}</span> ${esc(p.nota)} · ${p.n_opiniones} opiniones` : "Sin opiniones";
   const descartado = MARCAS.descartados.has(p.url);
   const chip = MARCAS.presupuesto.has(p.url) ? "＄ Presupuesto" : descartado ? "Descartado" : "";
-  const oculto = descartado && vista() === "catalogo" && !$("descartados").checked;
-  return `<div class="card-wrap${descartado ? " descartado" : ""}" data-url="${esc(p.url)}"${oculto ? " hidden" : ""}><button class="card" data-i="${i}">
+  return `<div class="card-wrap${descartado ? " descartado" : ""}" data-url="${esc(p.url)}"${oculto(p) ? " hidden" : ""}><button class="card" data-i="${i}">
     ${p.fotos.length ? imgFoto(p.r2 ? urlR2(p, "portada.webp") : urlFoto(p.fotos[0][0]), "foto") : sinFotos("Sin fotos en el archivo")}
     <div class="cuerpo">
       <h3>${esc(p.nombre)}</h3>
@@ -448,16 +481,16 @@ function pintarPresupuesto() {
   }).join("");
 }
 
+let pistaVista = false;
+try { pistaVista = localStorage.getItem("pista-gestos") === "1"; } catch {}
 let cola = [];
 let posicion = 0;
-let revisando = false;
 let deshacerAccion = null;
 let temporizadorAviso = 0;
 
-function abrirEn(nuevaCola, i, modoRevisar) {
+function abrirEn(nuevaCola, i) {
   cola = nuevaCola;
   posicion = i;
-  revisando = modoRevisar;
   pintarFicha();
   if (!$("detalle").open) $("detalle").showModal();
 }
@@ -470,7 +503,7 @@ function pintarFicha() {
       <div class="sello sello-no" id="sello-no">Descartar</div>
       <div class="det-head">
         <div style="flex:1">
-          ${revisando ? `<div class="posicion">Revisando ${posicion + 1} de ${cola.length}</div>` : ""}
+          <div class="posicion">${posicion + 1} de ${cola.length}</div>
           <h2>${esc(p.nombre)}</h2>
           <div class="meta">${p.nota ? `<span class="estrellas">${estrellas(p.nota)}</span> ${esc(p.nota)} · ${p.n_opiniones} opiniones · ` : ""}${esc([p.direccion, p.comuna, p.region].filter(Boolean).join(", "))}</div>
           ${p.precio ? `<div class="precio">${esc(p.precio)}</div>` : ""}
@@ -480,6 +513,7 @@ function pintarFicha() {
       ${p.fotos.length ? `<div class="galeria">${p.fotos.map(([, grande], n) => imgFoto(p.r2 ? urlR2(p, `${n + 1}.webp`) : urlFoto(grande), "")).join("")}</div>` : ""}
       <section class="bloque">
         <div class="links">${enlaceMapa(p)}${enlaceFicha(p)}</div>
+        ${p.descripcion || p.faqs.length || p.opiniones.length ? `<details class="mas-info"><summary>Ver más</summary>` : ""}
         ${p.descripcion ? `<h4>Descripción</h4><div class="descripcion">${esc(p.descripcion)}</div>` : ""}
         ${p.faqs.length ? `<h4>Preguntas frecuentes</h4><dl class="faq">${p.faqs.map((f) => `<dt>${esc(f.p)}</dt><dd>${f.r.map(esc).join(" · ")}</dd>`).join("")}</dl>` : ""}
         ${p.opiniones.length ? `<h4>Opiniones (${p.opiniones.length} de ${p.n_opiniones})</h4>${p.opiniones.map((o) => `
@@ -488,14 +522,18 @@ function pintarFicha() {
             <div class="estrellas">${estrellas(o.nota)}</div>
             <div>${esc(o.texto)}</div>
           </div>`).join("")}` : ""}
+        ${p.descripcion || p.faqs.length || p.opiniones.length ? "</details>" : ""}
       </section>
     </div>
     <div class="acciones">
+      <button class="navegar" data-accion="anterior" aria-label="Proveedor anterior">▲</button>
       <button data-accion="descartar" aria-label="Descartar">✕</button>
       <button data-accion="favorito" aria-label="Favorito">${MARCAS.favoritos.has(p.url) ? "♥" : "♡"}</button>
       <button data-accion="presupuesto" aria-label="Agregar a mi presupuesto">＄</button>
+      <button class="navegar" data-accion="siguiente" aria-label="Proveedor siguiente">▼</button>
     </div>
-    <div class="pop" id="pop">♥</div>`;
+    <div class="pop" id="pop">♥</div>
+    ${pistaVista ? "" : `<div class="pista" id="pista">→ presupuesto · ← descartar · 2× favorito · ↕ siguiente</div>`}`;
   $("detalle").scrollTop = 0;
 }
 
@@ -526,7 +564,25 @@ function marcar(url, destino) {
   return () => poner(url, antes);
 }
 
+function ocultarPista() {
+  if (pistaVista) return;
+  pistaVista = true;
+  try { localStorage.setItem("pista-gestos", "1"); } catch {}
+  $("pista")?.remove();
+}
+
+function navegar(paso) {
+  ocultarPista();
+  const destino = posicion + paso;
+  if (destino < 0 || destino >= cola.length) return avisar(paso > 0 ? "Es el último de la lista." : "Es el primero de la lista.", null);
+  posicion = destino;
+  pintarFicha();
+  $("ficha").classList.add(paso > 0 ? "desde-abajo" : "desde-arriba");
+}
+
 function decidir(accion) {
+  ocultarPista();
+  if (accion === "siguiente" || accion === "anterior") return navegar(accion === "siguiente" ? 1 : -1);
   const p = cola[posicion];
   if (accion === "favorito") {
     alternarFavorito(p.url);
@@ -541,7 +597,7 @@ function decidir(accion) {
   const deshacer = marcar(p.url, accion === "presupuesto" ? "presupuesto" : "descartados");
   avisar(accion === "presupuesto" ? "Agregado a tu presupuesto" : "Descartado", () => {
     deshacer();
-    abrirEn(cola, desde, revisando);
+    abrirEn(cola, desde);
   });
   volar(accion === "presupuesto" ? 1 : -1);
 }
@@ -561,7 +617,6 @@ function siguiente() {
     return;
   }
   $("detalle").close();
-  if (revisando) avisar("Revisaste todos los proveedores de estos filtros.", deshacerAccion);
 }
 
 let toque = null;
@@ -613,9 +668,30 @@ $("detalle").addEventListener("pointercancel", () => {
   toque = null;
 });
 
+const NAVEGAR_PX = 80;
+let deslizar = null;
+
+$("detalle").addEventListener("touchstart", (e) => {
+  const d = $("detalle");
+  deslizar = e.touches.length === 1 && !e.target.closest(".galeria") && {
+    x: e.touches[0].clientX,
+    y: e.touches[0].clientY,
+    arriba: d.scrollTop <= 0,
+    abajo: d.scrollTop + d.clientHeight >= d.scrollHeight - 2,
+  };
+}, { passive: true });
+$("detalle").addEventListener("touchend", (e) => {
+  if (!deslizar) return;
+  const dx = e.changedTouches[0].clientX - deslizar.x;
+  const dy = e.changedTouches[0].clientY - deslizar.y;
+  if (Math.abs(dy) < NAVEGAR_PX || Math.abs(dy) < Math.abs(dx) * 2) return;
+  if (dy < 0 && deslizar.abajo) navegar(1);
+  else if (dy > 0 && deslizar.arriba) navegar(-1);
+});
+
 document.addEventListener("keydown", (e) => {
   if (!$("detalle").open || e.target.matches?.("input, select, textarea")) return;
-  const accion = { ArrowLeft: "descartar", ArrowRight: "presupuesto", f: "favorito", F: "favorito" }[e.key];
+  const accion = { ArrowLeft: "descartar", ArrowRight: "presupuesto", ArrowUp: "anterior", ArrowDown: "siguiente", f: "favorito", F: "favorito" }[e.key];
   if (accion) { e.preventDefault(); decidir(accion); }
 });
 
@@ -625,11 +701,11 @@ document.addEventListener("click", (e) => {
 });
 $("grilla").addEventListener("click", (e) => {
   const card = e.target.closest(".card");
-  if (card) abrirEn(lista, Number(card.dataset.i), false);
+  if (card) abrirEn(lista, Number(card.dataset.i));
 });
 $("presupuesto").addEventListener("click", (e) => {
   const ver = e.target.closest(".ver");
-  if (ver) return abrirEn(listaPresupuesto, Number(ver.dataset.i), false);
+  if (ver) return abrirEn(listaPresupuesto, Number(ver.dataset.i));
   const quitar = e.target.closest(".quitar");
   if (quitar) avisar("Quitado de tu presupuesto", marcar(quitar.dataset.url, null));
 });
@@ -643,10 +719,9 @@ $("deshacer").addEventListener("click", () => {
   deshacerAccion?.();
   deshacerAccion = null;
 });
-$("revisar").addEventListener("click", () => {
-  const pendientes = lista.filter(indeciso);
-  if (!pendientes.length) return avisar("No quedan proveedores sin revisar con estos filtros.", null);
-  abrirEn(pendientes, 0, true);
+$("filtro-btn").addEventListener("click", () => {
+  const abierto = $("opciones").classList.toggle("abierto");
+  $("filtro-btn").setAttribute("aria-expanded", abierto);
 });
 $("categoria").addEventListener("change", mostrar);
 window.addEventListener("hashchange", mostrar);
