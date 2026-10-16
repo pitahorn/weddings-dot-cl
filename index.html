@@ -61,7 +61,8 @@
   @keyframes brillo { from { background-position: 100% 0; } to { background-position: 0 0; } }
   @media (prefers-reduced-motion: reduce) { .cargando { animation: none; } }
   .card .sin-fotos, .sin-fotos { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; }
-  .galeria img { height: 260px; aspect-ratio: 3/2; object-fit: cover; border-radius: 8px; background: var(--accent-soft); scroll-snap-align: start; flex: none; }
+  .galeria img { height: 260px; max-width: calc(100vw - 48px); object-fit: contain; border-radius: 8px; background: var(--accent-soft); scroll-snap-align: start; flex: none; }
+  .galeria img.cargando { width: 200px; }
   section.bloque { padding: 8px 24px 16px; }
   section.bloque h4 { margin: 16px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
   .descripcion { white-space: pre-line; }
