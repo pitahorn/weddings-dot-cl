@@ -748,8 +748,10 @@ $("detalle").addEventListener("click", (e) => {
   if (e.target === $("detalle") || e.target.closest(".cerrar")) return $("detalle").close();
   const verMas = e.target.closest(".ver-mas");
   if (verMas) {
-    $("detalle").classList.add("abierta");
-    return verMas.remove();
+    const abierta = $("detalle").classList.toggle("abierta");
+    verMas.textContent = abierta ? "Ver menos" : "Ver más";
+    if (!abierta) $("detalle").scrollTop = 0;
+    return;
   }
   const accion = e.target.closest("[data-accion]");
   if (accion) decidir(accion.dataset.accion);
