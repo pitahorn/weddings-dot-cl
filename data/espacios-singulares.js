@@ -1,0 +1,1 @@
+CATALOGO.agregar("espacios-singulares",[]);
