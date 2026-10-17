@@ -14,9 +14,14 @@ de todos los proveedores.
 ## Descargar más categorías
 
 ```sh
-caffeinate -i python3 scraper.py --publicar florerias photobooth   # o sin categorías: todas
-python3 scraper.py --armar                                          # rearma data/ sin red
+caffeinate -i python3 -u rescatar.py banquetes salones-eventos    # fichas + fotos a R2, proveedor por proveedor
+caffeinate -i python3 scraper.py --publicar florerias photobooth  # solo fichas
+python3 scraper.py --armar                                        # rearma data/ sin red
 ```
+
+`rescatar.py` baja cada ficha, baja sus fotos, las pasa a WebP y las sube a Cloudflare R2
+mientras espera al archivo (credenciales en `.env`, ver `.env.example`). Lo ya subido queda en
+`cache/r2.txt`.
 
 Las categorías están en `categorias.txt` (`[v]` = de proveedores). Solo usa librerías
 estándar de Python. Va lento a propósito (un pedido cada 5 s; el archivo bloquea sobre ~15
@@ -34,4 +39,3 @@ en el CDN, sin tamaño) y `url` + `ts` para abrir la ficha original en el archiv
 
 - `vestidos-novia` es un catálogo de vestidos (diseñador → colección → vestido), no de
   proveedores; necesita su propia pasada.
-- Pasada de fotos: consultar al archivo cuáles existen de verdad y guardar solo esas.

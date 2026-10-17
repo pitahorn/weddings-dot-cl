@@ -27,6 +27,7 @@ DESDE = "2025"
 RAIZ = Path(__file__).parent
 CACHE = RAIZ / "cache"
 DATA = RAIZ / "data"
+MANIFIESTO_R2 = CACHE / "r2.txt"  # "cat/id bytes" de cada proveedor con fotos ya en R2
 INTERVALO = 5.0  # segundos entre pedidos: el archivo bloquea sobre ~15 por minuto
 BLOQUEOS = [300, 900, 3600]  # esperas si el archivo nos rechaza; después, alerta
 PUBLICAR_CADA = 100  # proveedores nuevos entre cada subida a GitHub
@@ -257,12 +258,19 @@ def leer(archivo):
     return html if html.lstrip().startswith("<") else ""
 
 
+def en_r2():
+    if not MANIFIESTO_R2.exists():
+        return {}
+    return {clave: int(peso) for clave, peso in (l.split() for l in MANIFIESTO_R2.read_text().splitlines() if l)}
+
+
 def armar(cat):
     """Escribe data/<cat>.js con todo lo que hay en cache/, sin tocar la red."""
     carpeta = CACHE / cat
     fichas = listar_fichas(cat) if (carpeta / "_fichas.json").exists() else {}
     ts_por_id = {FICHA.search(u).group(1): ts for u, ts in fichas.items()}
     proveedores = []
+    subidos = en_r2()
     for archivo in sorted(carpeta.glob("*.html.gz")):
         html = leer(archivo)
         canonica = re.search(r'<link rel="canonical" href="([^"]+)"', html)
@@ -270,7 +278,7 @@ def armar(cat):
             continue
         url = htmllib.unescape(canonica.group(1))
         datos = extraer(html, url, ts_por_id.get(archivo.name.split(".")[0], DESDE))
-        if (RAIZ / "fotos" / cat / ".subido").exists() and (RAIZ / "fotos" / cat / archivo.name.split(".")[0] / "portada.webp").exists():
+        if f"{cat}/{archivo.name.split('.')[0]}" in subidos:
             datos["r2"] = True
         proveedores.append(datos)
     DATA.mkdir(exist_ok=True)
@@ -304,7 +312,8 @@ def publicar(mensaje):
         alerta("git push falló; los datos quedaron commiteados en local")
 
 
-def procesar(cat, sube):
+def procesar(cat, sube, despues=None):
+    """despues(cat, url, ts, html) corre por cada ficha, nueva o ya guardada."""
     log(f"== {cat}")
     fichas = listar_fichas(cat)
     log(f"{len(fichas)} fichas archivadas desde {DESDE}")
@@ -312,7 +321,9 @@ def procesar(cat, sube):
     nuevas = no_encontradas = 0
     for i, (url, ts) in enumerate(sorted(fichas.items()), 1):
         archivo = carpeta / f"{FICHA.search(url).group(1)}.html.gz"
-        if leer(archivo):
+        if html := leer(archivo):
+            if despues:
+                despues(cat, url, ts, html)
             continue
         html = get(f"https://web.archive.org/web/{ts}id_/{url}")
         if not html:
@@ -322,6 +333,8 @@ def procesar(cat, sube):
                 alerta(f"{no_encontradas} fichas seguidas no existen en el archivo")
             continue
         archivo.write_bytes(gzip.compress(html.encode("utf-8")))
+        if despues:
+            despues(cat, url, ts, html)
         nuevas, no_encontradas = nuevas + 1, 0
         log(f"[{i}/{len(fichas)}] {url.rsplit('/', 1)[-1][:60]}")
         if sube and nuevas % PUBLICAR_CADA == 0:

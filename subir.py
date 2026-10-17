@@ -1,36 +1,32 @@
-#!/usr/bin/env python3
 """
-Sube fotos/<categoria>/ a Cloudflare R2, con la misma ruta como clave.
+Sube las fotos de cada proveedor a Cloudflare R2 en segundo plano, con una sola conexión.
 
-Uso:
-    python3 subir.py trajes-novio
-
-Lee las credenciales de .env (no se sube a git; ver .env.example). Retoma: lo que ya está en
-el bucket con el mismo tamaño no se vuelve a subir. El bucket solo recibe lo que hay en fotos/,
-así que si fotos/ pasa de 8 GB no sube nada.
+Lee las credenciales de .env (no se sube a git; ver .env.example). Cada proveedor que termina
+de subir queda anotado en cache/r2.txt, que es lo que scraper.armar usa para apuntar a R2.
+Si lo ya subido pasa de 8 GB, se detiene antes de subir más.
 """
 import datetime
 import hashlib
 import hmac
-import sys
-import urllib.error
+import http.client
+import queue
+import threading
 import urllib.parse
-import urllib.request
-from pathlib import Path
 
-RAIZ = Path(__file__).parent
-FOTOS = RAIZ / "fotos"
+import scraper
+
 CACHE_DE_UN_ANO = "public, max-age=31536000, immutable"
 LIMITE_BYTES = 8 * 1024**3  # R2 gratis llega a 10 GB; paramos antes
+REINTENTOS = 3
 
 
 def credenciales():
-    lineas = (RAIZ / ".env").read_text("utf-8").splitlines()
+    lineas = (scraper.RAIZ / ".env").read_text("utf-8").splitlines()
     return dict(l.split("=", 1) for l in lineas if "=" in l and not l.startswith("#"))
 
 
 def firmar(env, metodo, clave, cuerpo=b"", extra=None):
-    """Request de S3 firmado con SigV4, como lo pide R2."""
+    """Ruta y cabeceras de un pedido S3 firmado con SigV4, como lo pide R2."""
     host = f"{env['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com"
     ruta = "/" + urllib.parse.quote(f"{env['R2_BUCKET']}/{clave}")
     ahora = datetime.datetime.now(datetime.timezone.utc)
@@ -45,36 +41,62 @@ def firmar(env, metodo, clave, cuerpo=b"", extra=None):
         llave = hmac.new(llave, parte.encode(), hashlib.sha256).digest()
     firma = hmac.new(llave, a_firmar.encode(), hashlib.sha256).hexdigest()
     cabeceras["authorization"] = f"AWS4-HMAC-SHA256 Credential={env['R2_ACCESS_KEY_ID']}/{alcance}, SignedHeaders={nombres}, Signature={firma}"
-    return urllib.request.Request(f"https://{host}{ruta}", data=cuerpo or None, method=metodo, headers=cabeceras)
+    return ruta, cabeceras
 
 
-def tamano_remoto(env, clave):
-    try:
-        with urllib.request.urlopen(firmar(env, "HEAD", clave), timeout=30) as r:
-            return int(r.headers.get("Content-Length", -1))
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            return None
-        raise
+class Subidor:
+    """Recibe proveedores (cat, id, [(nombre, bytes)]) y los sube mientras el scraper espera al archivo."""
 
+    def __init__(self):
+        self.env = credenciales()
+        self.host = f"{self.env['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com"
+        self.total = sum(scraper.en_r2().values())
+        self.cola = queue.Queue()
+        self.conexion = None
+        self.error = None
+        threading.Thread(target=self._trabajar, daemon=True).start()
 
-def subir(env, archivo):
-    clave = archivo.relative_to(FOTOS).as_posix()
-    cuerpo = archivo.read_bytes()
-    if tamano_remoto(env, clave) == len(cuerpo):
-        return False
-    extra = {"content-type": "image/webp", "cache-control": CACHE_DE_UN_ANO}
-    with urllib.request.urlopen(firmar(env, "PUT", clave, cuerpo, extra), timeout=60):
-        return True
+    def proveedor(self, cat, id_proveedor, archivos):
+        if self.error:
+            scraper.alerta(f"la subida a R2 falló: {self.error}")
+        self.total += sum(len(b) for _, b in archivos)
+        if self.total > LIMITE_BYTES:
+            scraper.alerta(f"R2 llegaría a {self.total / 1024**3:.1f} GB, sobre el límite de {LIMITE_BYTES / 1024**3:.0f} GB")
+        self.cola.put((cat, id_proveedor, archivos))
 
+    def esperar(self):
+        self.cola.join()
+        if self.error:
+            scraper.alerta(f"la subida a R2 falló: {self.error}")
 
-if __name__ == "__main__":
-    total = sum(a.stat().st_size for a in FOTOS.rglob("*.webp"))
-    if total > LIMITE_BYTES:
-        sys.exit(f"ALERTA: fotos/ pesa {total / 1024**3:.1f} GB, sobre el límite de {LIMITE_BYTES / 1024**3:.0f} GB. No subo nada.")
-    env = credenciales()
-    for categoria in sys.argv[1:]:
-        archivos = sorted((FOTOS / categoria).rglob("*.webp"))
-        nuevas = sum(subir(env, a) for a in archivos)
-        (FOTOS / categoria / ".subido").touch()  # scraper.armar solo apunta a R2 lo que ya subió
-        print(f"{categoria}: {nuevas} subidas, {len(archivos) - nuevas} ya estaban", flush=True)
+    def _trabajar(self):
+        while True:
+            cat, id_proveedor, archivos = self.cola.get()
+            try:
+                if not self.error:
+                    for nombre, cuerpo in archivos:
+                        self._poner(f"{cat}/{id_proveedor}/{nombre}", cuerpo)
+                    with scraper.MANIFIESTO_R2.open("a") as f:
+                        f.write(f"{cat}/{id_proveedor} {sum(len(b) for _, b in archivos)}\n")
+            except Exception as e:
+                self.error = e
+            finally:
+                self.cola.task_done()
+
+    def _poner(self, clave, cuerpo):
+        extra = {"content-type": "image/webp", "cache-control": CACHE_DE_UN_ANO}
+        for intento in range(REINTENTOS):
+            try:
+                self.conexion = self.conexion or http.client.HTTPSConnection(self.host, timeout=60)
+                ruta, cabeceras = firmar(self.env, "PUT", clave, cuerpo, extra)
+                self.conexion.request("PUT", ruta, cuerpo, cabeceras)
+                respuesta = self.conexion.getresponse()
+                respuesta.read()
+                if respuesta.status < 300:
+                    return
+                raise OSError(f"R2 respondió {respuesta.status} para {clave}")
+            except (OSError, http.client.HTTPException):
+                self.conexion.close()
+                self.conexion = None
+                if intento == REINTENTOS - 1:
+                    raise
